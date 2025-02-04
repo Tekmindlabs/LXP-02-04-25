@@ -9,11 +9,10 @@ import { CourseViewer } from './CourseViewer';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import type { Course } from '@/types/course-management';
-import { CourseManagementService } from '@/lib/course-management/course-service';
-
-const courseManagementService = new CourseManagementService();
+import { api } from '@/utils/api';
 
 export function CourseManagementPage() {
+
 	const [activeTab, setActiveTab] = useState('create');
 	const [selectedCourse, setSelectedCourse] = useState<Course | undefined>();
 	const [courses, setCourses] = useState<Course[]>([]);
@@ -22,7 +21,8 @@ export function CourseManagementPage() {
 	useEffect(() => {
 		const fetchCourses = async () => {
 			try {
-				// TODO: Add API endpoint to fetch all courses
+				const allCourses = await api.course.getAllCourses.query();
+				setCourses(allCourses);
 				setIsLoading(false);
 			} catch (error) {
 				console.error('Error fetching courses:', error);

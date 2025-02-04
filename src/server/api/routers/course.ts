@@ -186,5 +186,24 @@ export const courseRouter = createTRPCRouter({
 					}
 				}
 			});
+		}),
+
+	getAllCourses: protectedProcedure
+		.query(async ({ ctx }) => {
+			return ctx.prisma.course.findMany({
+				include: {
+					subjects: {
+						include: {
+							teachers: true,
+							activities: true
+						}
+					},
+					classGroups: {
+						include: {
+							calendar: true
+						}
+					}
+				}
+			});
 		})
 });
