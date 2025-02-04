@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CourseBuilder } from './CourseBuilder';
 import { CourseList } from './CourseList';
 import { CourseUpdate } from './CourseUpdate';
+import { CourseViewer } from './CourseViewer';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import type { Course } from '@/types/course-management';
@@ -67,14 +68,20 @@ export function CourseManagementPage() {
 				<TabsContent value="view">
 					<Card className="p-6">
 						<h2 className="text-2xl font-bold mb-4">Available Courses</h2>
-						<CourseList 
-							courses={courses}
-							onSelect={(course) => {
-								setSelectedCourse(course);
-								setActiveTab('update');
-							}}
-							isLoading={isLoading}
-						/>
+						{selectedCourse ? (
+							<CourseViewer 
+								course={selectedCourse}
+								onUpdate={handleCourseUpdate}
+							/>
+						) : (
+							<CourseList 
+								courses={courses}
+								onSelect={(course) => {
+									setSelectedCourse(course);
+								}}
+								isLoading={isLoading}
+							/>
+						)}
 					</Card>
 				</TabsContent>
 
