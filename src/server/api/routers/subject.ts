@@ -82,6 +82,10 @@ export const subjectRouter = createTRPCRouter({
 			name: z.string().optional(),
 			code: z.string().optional(),
 			description: z.string().optional(),
+			courseStructure: z.object({
+				type: z.enum(['CHAPTER', 'BLOCK', 'WEEKLY']),
+				units: z.array(z.any())
+			}).optional(),
 			classGroupIds: z.array(z.string()),
 			teacherIds: z.array(z.string()).optional(),
 			status: z.enum([Status.ACTIVE, Status.INACTIVE, Status.ARCHIVED]).optional(),

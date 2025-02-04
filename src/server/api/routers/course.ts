@@ -2,7 +2,8 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { courseService } from "../../../lib/course-management/course-service";
 import { TRPCError } from "@trpc/server";
-import { Prisma } from "@prisma/client";
+import { Prisma, Status } from "@prisma/client";
+import type { CourseStructure, ClassActivity } from "@/types/course-management";
 
 const courseSettingsSchema = z.object({
 	allowLateSubmissions: z.boolean(),
@@ -190,12 +191,17 @@ export const courseRouter = createTRPCRouter({
 
 	getAllCourses: protectedProcedure
 		.query(async ({ ctx }) => {
-			return ctx.prisma.course.findMany({
+			const courses = await ctx.prisma.course.findMany({
 				include: {
 					subjects: {
 						include: {
-							teachers: true,
-							activities: true
+							teacherAssignments: {
+								include: {
+									teacher: true
+								}
+							},
+							activities: true,
+							courseStructure: true
 						}
 					},
 					classGroups: {
@@ -205,5 +211,39 @@ export const courseRouter = createTRPCRouter({
 					}
 				}
 			});
+
+			return courses.map(course => ({
+				id: course.id,
+				name: course.name,
+				subjects: course.subjects.map(s => ({
+					id: s.id,
+					name: s.name,
+					description: s.description || undefined,
+					courseStructure: s.courseStructure as CourseStructure,
+					teachers: s.teacherAssignments.map(t => ({
+						id: t.id,
+						teacherId: t.teacherId,
+						subjectId: t.subjectId,
+						classId: t.classId,
+						isClassTeacher: t.isClassTeacher,
+						assignedAt: t.assignedAt,
+						createdAt: t.assignedAt, // Use assignedAt for both since TeacherAssignment doesn't have its own createdAt
+						updatedAt: t.assignedAt, // Use assignedAt for updatedAt as well
+						status: 'ACTIVE' // Default to ACTIVE since TeacherAssignment doesn't track status
+					})),
+					activities: s.activities.map(a => ({
+						id: a.id,
+						type: a.type as ClassActivity['type'],
+						title: a.title,
+						description: a.description,
+						dueDate: a.dueDate || undefined,
+						points: a.points || undefined,
+						status: a.status as ClassActivity['status']
+					}))
+				})),
+				academicYear: course.academicYear,
+				classGroupId: course.classGroups[0]?.id || '',
+				calendarId: course.classGroups[0]?.calendar?.id
+			}));
 		})
 });

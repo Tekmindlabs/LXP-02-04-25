@@ -7,7 +7,6 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CourseStructureEditor } from './CourseStructureEditor';
 import type { Course, Subject } from '@/types/course-management';
-import { CourseManagementService } from '@/lib/course-management/course-service';
 import { toast } from 'sonner';
 import { api } from '@/utils/api';
 
@@ -16,15 +15,27 @@ interface CourseUpdateProps {
 	onUpdate?: (updatedCourse: Course) => void;
 }
 
-const courseManagementService = new CourseManagementService();
-
 export const CourseUpdate = ({ course, onUpdate }: CourseUpdateProps) => {
-	const [courseData, setCourseData] = useState<Partial<Course>>(course || {
+	const updateCourseMutation = api.course.updateSettings.useMutation();
+	const updateSubjectMutation = api.subject.update.useMutation();
+
+	const [courseData, setCourseData] = useState<Partial<Course> & { 
+		settings?: { 
+			allowLateSubmissions: boolean; 
+			gradingScale: string; 
+			attendanceRequired: boolean 
+		} 
+	}>(course || {
 		name: '',
 		academicYear: '',
 		classGroupId: '',
 		calendarId: '',
-		subjects: []
+		subjects: [],
+		settings: {
+			allowLateSubmissions: false,
+			gradingScale: 'standard',
+			attendanceRequired: true
+		}
 	});
 
 	const { data: classGroups } = api.classGroup.getAllClassGroups.useQuery();
@@ -34,23 +45,29 @@ export const CourseUpdate = ({ course, onUpdate }: CourseUpdateProps) => {
 		if (!courseData.id) return;
 
 		try {
-			const updatedCourse = await courseManagementService.updateCourse(courseData.id, {
-				name: courseData.name,
-				academicYear: courseData.academicYear,
-				classGroupId: courseData.classGroupId
-			});
-
-			if (courseData.subjects) {
-				for (const subject of courseData.subjects) {
-					await courseManagementService.updateSubject(subject.id, {
-						name: subject.name,
-						description: subject.description,
-						courseStructure: subject.courseStructure
-					});
-				}
+			if (courseData.settings) {
+				await updateCourseMutation.mutateAsync({
+					id: courseData.id,
+					settings: courseData.settings
+				});
 			}
 
-			onUpdate?.(updatedCourse);
+			if (courseData.subjects) {
+				await Promise.all(
+					courseData.subjects.map(async (subject) => {
+						await updateSubjectMutation.mutateAsync({
+							id: subject.id,
+							name: subject.name,
+							description: subject.description,
+							courseStructure: subject.courseStructure,
+							classGroupIds: [courseData.classGroupId || ''],
+							status: 'ACTIVE'
+						});
+					})
+				);
+			}
+
+			onUpdate?.(courseData as Course);
 			toast.success('Course updated successfully');
 		} catch (error) {
 			toast.error('Failed to update course');
@@ -136,6 +153,61 @@ export const CourseUpdate = ({ course, onUpdate }: CourseUpdateProps) => {
 						/>
 					</div>
 				)}
+
+				<div className="border-t pt-4 mt-4">
+					<h3 className="text-lg font-semibold mb-3">Course Settings</h3>
+					<div className="space-y-4">
+						<div className="flex items-center space-x-2">
+							<input
+								type="checkbox"
+								id="allowLateSubmissions"
+								checked={courseData.settings?.allowLateSubmissions ?? false}
+								onChange={(e) => setCourseData(prev => ({
+									...prev,
+									settings: {
+										allowLateSubmissions: e.target.checked,
+										gradingScale: prev.settings?.gradingScale ?? 'standard',
+										attendanceRequired: prev.settings?.attendanceRequired ?? true
+									}
+								}))}
+							/>
+							<label htmlFor="allowLateSubmissions">Allow Late Submissions</label>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium mb-1">Grading Scale</label>
+							<Input
+								value={courseData.settings?.gradingScale ?? 'standard'}
+								onChange={(e) => setCourseData(prev => ({
+									...prev,
+									settings: {
+										allowLateSubmissions: prev.settings?.allowLateSubmissions ?? false,
+										gradingScale: e.target.value,
+										attendanceRequired: prev.settings?.attendanceRequired ?? true
+									}
+								}))}
+								placeholder="Enter grading scale"
+							/>
+						</div>
+
+						<div className="flex items-center space-x-2">
+							<input
+								type="checkbox"
+								id="attendanceRequired"
+								checked={courseData.settings?.attendanceRequired ?? true}
+								onChange={(e) => setCourseData(prev => ({
+									...prev,
+									settings: {
+										allowLateSubmissions: prev.settings?.allowLateSubmissions ?? false,
+										gradingScale: prev.settings?.gradingScale ?? 'standard',
+										attendanceRequired: e.target.checked
+									}
+								}))}
+							/>
+							<label htmlFor="attendanceRequired">Attendance Required</label>
+						</div>
+					</div>
+				</div>
 
 				<Button type="submit">Update Course</Button>
 			</form>

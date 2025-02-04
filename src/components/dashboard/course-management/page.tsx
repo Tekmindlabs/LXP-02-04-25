@@ -12,43 +12,24 @@ import type { Course } from '@/types/course-management';
 import { api } from '@/utils/api';
 
 export function CourseManagementPage() {
-
 	const [activeTab, setActiveTab] = useState('create');
 	const [selectedCourse, setSelectedCourse] = useState<Course | undefined>();
-	const [courses, setCourses] = useState<Course[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-
-	useEffect(() => {
-		const fetchCourses = async () => {
-			try {
-				const allCourses = await api.course.getAllCourses.query();
-				setCourses(allCourses);
-				setIsLoading(false);
-			} catch (error) {
-				console.error('Error fetching courses:', error);
-				toast.error('Failed to load courses');
-				setIsLoading(false);
-			}
-		};
-
-		fetchCourses();
-	}, []);
+	const { data: courses, isLoading } = api.course.getAllCourses.useQuery();
+	const utils = api.useContext();
 
 	const handleCourseCreated = async (newCourse: Course) => {
-		setCourses(prev => [...prev, newCourse]);
+		await utils.course.getAllCourses.invalidate();
 		setActiveTab('view');
 		toast.success('Course created successfully');
 	};
 
 	const handleCourseUpdate = async (updatedCourse: Course) => {
-		setCourses(prev => 
-			prev.map(course => 
-				course.id === updatedCourse.id ? updatedCourse : course
-			)
-		);
+		await utils.course.getAllCourses.invalidate();
 		toast.success('Course updated successfully');
 		setActiveTab('view');
 	};
+
+
 
 	return (
 		<div className="container mx-auto p-6">
@@ -75,7 +56,7 @@ export function CourseManagementPage() {
 							/>
 						) : (
 							<CourseList 
-								courses={courses}
+								courses={courses ?? []}
 								onSelect={(course) => {
 									setSelectedCourse(course);
 								}}

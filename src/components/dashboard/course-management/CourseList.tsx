@@ -61,7 +61,11 @@ export const CourseList = ({ courses = [], onSelect, isLoading = false }: Course
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
 				/>
-				<Select value={classGroupFilter} onValueChange={setClassGroupFilter}>
+				<Select 
+					key="class-group-select"
+					value={classGroupFilter} 
+					onValueChange={setClassGroupFilter}
+				>
 					<SelectTrigger>
 						<SelectValue placeholder="Select Class Group" />
 					</SelectTrigger>
@@ -74,7 +78,11 @@ export const CourseList = ({ courses = [], onSelect, isLoading = false }: Course
 						))}
 					</SelectContent>
 				</Select>
-				<Select value={yearFilter} onValueChange={setYearFilter}>
+				<Select 
+					key="year-select"
+					value={yearFilter} 
+					onValueChange={setYearFilter}
+				>
 					<SelectTrigger>
 						<SelectValue placeholder="Select Year" />
 					</SelectTrigger>
