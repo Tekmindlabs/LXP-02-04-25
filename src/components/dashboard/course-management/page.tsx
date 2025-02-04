@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CourseBuilder } from './CourseBuilder';
 import { CourseList } from './CourseList';
@@ -15,19 +15,17 @@ export function CourseManagementPage() {
 	const [activeTab, setActiveTab] = useState('create');
 	const [selectedCourse, setSelectedCourse] = useState<Course | undefined>();
 	const { data: courses, isLoading } = api.course.getAllCourses.useQuery();
-	const utils = api.useContext();
 
-	const handleCourseCreated = async (newCourse: Course) => {
-		await utils.course.getAllCourses.invalidate();
+	const handleCourseCreated = () => {
 		setActiveTab('view');
 		toast.success('Course created successfully');
 	};
 
-	const handleCourseUpdate = async (updatedCourse: Course) => {
-		await utils.course.getAllCourses.invalidate();
+	const handleCourseUpdate = () => {
 		toast.success('Course updated successfully');
 		setActiveTab('view');
 	};
+
 
 
 

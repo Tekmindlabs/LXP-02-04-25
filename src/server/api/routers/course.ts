@@ -2,8 +2,8 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { courseService } from "../../../lib/course-management/course-service";
 import { TRPCError } from "@trpc/server";
-import { Prisma, Status } from "@prisma/client";
-import type { CourseStructure, ClassActivity } from "@/types/course-management";
+import { Prisma } from "@prisma/client";
+import type { CourseStructure, TeacherAssignment, ClassActivity } from "@/types/course-management";
 
 const courseSettingsSchema = z.object({
 	allowLateSubmissions: z.boolean(),
@@ -59,8 +59,14 @@ export const courseRouter = createTRPCRouter({
 					isTemplate: true
 				},
 				include: {
-					subjects: true
+					subjects: {
+						include: {
+							teacherAssignments: true,
+							activities: true
+						}
+					}
 				}
+
 			});
 
 			if (!template) {
@@ -82,7 +88,10 @@ export const courseRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const template = await ctx.prisma.course.findUnique({
 				where: { id: input.templateId },
-				include: { subjects: true }
+				include: { 
+					subjects: true,
+					classGroups: true
+				}
 			});
 
 			if (!template) {
@@ -94,7 +103,6 @@ export const courseRouter = createTRPCRouter({
 
 			const settings = (input.settings || template.settings) as Prisma.InputJsonValue;
 
-
 			return ctx.prisma.course.create({
 				data: {
 					name: input.name,
@@ -104,12 +112,13 @@ export const courseRouter = createTRPCRouter({
 					parentCourseId: template.id,
 					settings,
 					subjects: {
-						connect: template.subjects.map(s => ({ id: s.id }))
+						connect: template.subjects.map((s: { id: string }) => ({ id: s.id }))
 					}
 				},
 				include: {
 					subjects: true,
-					parentCourse: true
+					parentCourse: true,
+					classGroups: true
 				}
 			});
 		}),
@@ -195,13 +204,8 @@ export const courseRouter = createTRPCRouter({
 				include: {
 					subjects: {
 						include: {
-							teacherAssignments: {
-								include: {
-									teacher: true
-								}
-							},
-							activities: true,
-							courseStructure: true
+							teacherAssignments: true,
+							activities: true
 						}
 					},
 					classGroups: {
@@ -212,34 +216,56 @@ export const courseRouter = createTRPCRouter({
 				}
 			});
 
-			return courses.map(course => ({
+			return courses.map((course) => ({
 				id: course.id,
 				name: course.name,
-				subjects: course.subjects.map(s => ({
-					id: s.id,
-					name: s.name,
-					description: s.description || undefined,
-					courseStructure: s.courseStructure as CourseStructure,
-					teachers: s.teacherAssignments.map(t => ({
-						id: t.id,
-						teacherId: t.teacherId,
-						subjectId: t.subjectId,
-						classId: t.classId,
-						isClassTeacher: t.isClassTeacher,
-						assignedAt: t.assignedAt,
-						createdAt: t.assignedAt, // Use assignedAt for both since TeacherAssignment doesn't have its own createdAt
-						updatedAt: t.assignedAt, // Use assignedAt for updatedAt as well
-						status: 'ACTIVE' // Default to ACTIVE since TeacherAssignment doesn't track status
-					})),
-					activities: s.activities.map(a => ({
-						id: a.id,
-						type: a.type as ClassActivity['type'],
-						title: a.title,
-						description: a.description,
-						dueDate: a.dueDate || undefined,
-						points: a.points || undefined,
-						status: a.status as ClassActivity['status']
-					}))
+				subjects: course.subjects.map((subject: { 
+					id: string; 
+					name: string; 
+					description: string | null; 
+					courseStructure: Prisma.JsonValue | null;
+					teacherAssignments: {
+						id: string;
+						teacherId: string;
+						subjectId: string;
+						classId: string;
+						isClassTeacher: boolean;
+						assignedAt: Date;
+					}[];
+					activities: {
+						id: string;
+						type: string;
+						title: string;
+						description: string;
+						dueDate: Date | null;
+						points: number | null;
+						status: string;
+					}[];
+				}) => ({
+					id: subject.id,
+					name: subject.name,
+					description: subject.description || undefined,
+					courseStructure: (subject.courseStructure as unknown) as CourseStructure,
+					teachers: subject.teacherAssignments.map((teacher) => ({
+						id: teacher.id,
+						teacherId: teacher.teacherId,
+						subjectId: teacher.subjectId,
+						classId: teacher.classId,
+						isClassTeacher: teacher.isClassTeacher,
+						assignedAt: teacher.assignedAt,
+						createdAt: teacher.assignedAt,
+						updatedAt: teacher.assignedAt,
+						status: 'ACTIVE' as const
+					})) satisfies TeacherAssignment[],
+					activities: subject.activities.map((activity) => ({
+						id: activity.id,
+						type: activity.type as 'ASSIGNMENT' | 'QUIZ' | 'PROJECT' | 'DISCUSSION' | 'EXAM',
+						title: activity.title,
+						description: activity.description,
+						dueDate: activity.dueDate || undefined,
+						points: activity.points || undefined,
+						status: activity.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+					})) satisfies ClassActivity[]
 				})),
 				academicYear: course.academicYear,
 				classGroupId: course.classGroups[0]?.id || '',
