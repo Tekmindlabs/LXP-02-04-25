@@ -89,8 +89,22 @@ export interface FillBlanksConfig extends ActivityConfiguration {
 
 export interface WordSearchConfig extends ActivityConfiguration {
 	words: string[];
-	gridSize: number;
+	gridSize: {
+		rows: number;
+		cols: number;
+	};
+	orientations: {
+		horizontal: boolean;
+		vertical: boolean;
+		diagonal: boolean;
+		reverseHorizontal: boolean;
+		reverseVertical: boolean;
+		reverseDiagonal: boolean;
+	};
 	difficulty: 'easy' | 'medium' | 'hard';
+	timeLimit?: number;
+	showWordList: boolean;
+	fillRandomLetters: boolean;
 }
 
 export interface FlashcardConfig extends ActivityConfiguration {
