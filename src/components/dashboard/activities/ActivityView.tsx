@@ -1,6 +1,6 @@
 'use client';
 
-import { ActivityType, ClassActivity } from '@/types/class-activity';
+import { ActivityType, ClassActivity, MultipleChoiceConfig, DragDropConfig, FillBlanksConfig, WordSearchConfig, FlashcardConfig } from '@/types/class-activity';
 import {
 	MultipleChoiceActivity,
 	DragDropActivity,
@@ -17,11 +17,21 @@ interface ActivityViewProps {
 
 export function ActivityView({ activity, viewType, onSubmit }: ActivityViewProps) {
 	const renderActivity = () => {
+		if (!activity.configuration) {
+			return (
+				<div className="p-4 border rounded bg-muted">
+					<p className="text-muted-foreground">
+						No configuration available for this activity.
+					</p>
+				</div>
+			);
+		}
+
 		switch (activity.type) {
 			case 'QUIZ_MULTIPLE_CHOICE':
 				return (
 					<MultipleChoiceActivity
-						config={activity.configuration}
+						config={activity.configuration as MultipleChoiceConfig}
 						viewType={viewType}
 						onSubmit={onSubmit}
 					/>
@@ -29,7 +39,7 @@ export function ActivityView({ activity, viewType, onSubmit }: ActivityViewProps
 			case 'QUIZ_DRAG_DROP':
 				return (
 					<DragDropActivity
-						config={activity.configuration}
+						config={activity.configuration as DragDropConfig}
 						viewType={viewType}
 						onSubmit={onSubmit}
 					/>
@@ -37,7 +47,7 @@ export function ActivityView({ activity, viewType, onSubmit }: ActivityViewProps
 			case 'QUIZ_FILL_BLANKS':
 				return (
 					<FillBlanksActivity
-						config={activity.configuration}
+						config={activity.configuration as FillBlanksConfig}
 						viewType={viewType}
 						onSubmit={onSubmit}
 					/>
@@ -45,7 +55,7 @@ export function ActivityView({ activity, viewType, onSubmit }: ActivityViewProps
 			case 'GAME_WORD_SEARCH':
 				return (
 					<WordSearchActivity
-						config={activity.configuration}
+						config={activity.configuration as WordSearchConfig}
 						viewType={viewType}
 						onSubmit={onSubmit}
 					/>
@@ -53,7 +63,7 @@ export function ActivityView({ activity, viewType, onSubmit }: ActivityViewProps
 			case 'GAME_FLASHCARDS':
 				return (
 					<FlashcardActivity
-						config={activity.configuration}
+						config={activity.configuration as FlashcardConfig}
 						viewType={viewType}
 						onSubmit={onSubmit}
 					/>

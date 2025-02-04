@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, useDroppable } from '@dnd-kit/core';
+import { SortableContext, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DragDropConfig } from '@/types/class-activity';
@@ -12,16 +14,71 @@ interface DragDropActivityProps {
 	onSubmit?: (data: { matches: Record<string, string>; score: number; totalPoints: number }) => void;
 }
 
+interface DraggableItemProps {
+	id: string;
+	content: string;
+	disabled?: boolean;
+}
+
+interface DroppableZoneProps {
+	id: string;
+	label: string;
+	isMatched: boolean;
+}
+
+function DraggableItem({ id, content, disabled }: DraggableItemProps) {
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+	} = useSortable({ id, disabled });
+
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+	};
+
+	return (
+		<Card
+			ref={setNodeRef}
+			style={style}
+			className="p-4 cursor-move"
+			{...attributes}
+			{...listeners}
+		>
+			{content}
+		</Card>
+	);
+}
+
+function DroppableZone({ id, label, isMatched }: DroppableZoneProps) {
+	const { setNodeRef, isOver } = useDroppable({ id });
+
+	return (
+		<Card
+			ref={setNodeRef}
+			className={`p-4 border-2 rounded-lg min-h-[100px] transition-colors ${
+				isOver ? 'border-primary bg-primary/10' : isMatched ? 'border-primary' : 'border-dashed'
+			}`}
+		>
+			<div className="font-medium mb-2">{label}</div>
+		</Card>
+	);
+}
+
 export function DragDropActivity({ config, viewType, onSubmit }: DragDropActivityProps) {
 	const [matches, setMatches] = useState<Record<string, string>>({});
+	const sensors = useSensors(useSensor(PointerSensor));
 
-	const handleDragEnd = (result: any) => {
-		if (!result.destination || viewType !== 'STUDENT') return;
+	const handleDragEnd = (event: DragEndEvent) => {
+		if (!event.over || viewType !== 'STUDENT') return;
 
-		const { draggableId, destination } = result;
+		const { active, over } = event;
 		setMatches(prev => ({
 			...prev,
-			[draggableId]: destination.droppableId
+			[active.id as string]: over.id as string
 		}));
 	};
 
@@ -40,56 +97,34 @@ export function DragDropActivity({ config, viewType, onSubmit }: DragDropActivit
 	};
 
 	return (
-		<DragDropContext onDragEnd={handleDragEnd}>
+		<DndContext sensors={sensors} onDragEnd={handleDragEnd}>
 			<div className="grid grid-cols-2 gap-6">
 				<div>
 					<h3 className="font-medium mb-4">Items</h3>
-					<Droppable droppableId="items">
-						{(provided) => (
-							<div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-								{config.items.map((item, index) => (
-									<Draggable
-										key={item.draggableId}
-										draggableId={item.draggableId}
-										index={index}
-										isDragDisabled={viewType === 'PREVIEW'}
-									>
-										{(provided) => (
-											<Card
-												ref={provided.innerRef}
-												{...provided.draggableProps}
-												{...provided.dragHandleProps}
-												className="p-4 cursor-move"
-											>
-												{item.content}
-											</Card>
-										)}
-									</Draggable>
-								))}
-								{provided.placeholder}
-							</div>
-						)}
-					</Droppable>
+					<SortableContext items={config.items.map(item => item.draggableId)}>
+						<div className="space-y-2">
+							{config.items.map((item) => (
+								<DraggableItem
+									key={item.draggableId}
+									id={item.draggableId}
+									content={item.content}
+									disabled={viewType === 'PREVIEW'}
+								/>
+							))}
+						</div>
+					</SortableContext>
 				</div>
 
 				<div>
 					<h3 className="font-medium mb-4">Drop Zones</h3>
 					<div className="space-y-4">
 						{config.dropZones.map((zone) => (
-							<Droppable key={zone.zoneId} droppableId={zone.zoneId}>
-								{(provided, snapshot) => (
-									<div
-										ref={provided.innerRef}
-										{...provided.droppableProps}
-										className={`p-4 border-2 rounded-lg min-h-[100px] ${
-											snapshot.isDraggingOver ? 'border-primary' : 'border-dashed'
-										}`}
-									>
-										<div className="font-medium mb-2">{zone.label}</div>
-										{provided.placeholder}
-									</div>
-								)}
-							</Droppable>
+							<DroppableZone
+								key={zone.zoneId}
+								id={zone.zoneId}
+								label={zone.label}
+								isMatched={Object.values(matches).includes(zone.zoneId)}
+							/>
 						))}
 					</div>
 				</div>
@@ -104,6 +139,6 @@ export function DragDropActivity({ config, viewType, onSubmit }: DragDropActivit
 					Submit Answers
 				</Button>
 			)}
-		</DragDropContext>
+		</DndContext>
 	);
 }
