@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import type { ClassActivity, StudentActivity, StudentProfile } from "@prisma/client";
+import type { ClassActivity, ActivitySubmission, User } from "@prisma/client";
 
 interface ActivityWithSubmissions extends ClassActivity {
-	submissions: (StudentActivity & {
-		student: StudentProfile;
+	submissions: (ActivitySubmission & {
+		student: User;
 	})[];
 }
 
@@ -38,7 +38,11 @@ export const gradebookRouter = createTRPCRouter({
 				where: {
 					classId,
 				},
+				include: {
+					user: true,
+				},
 			});
+
 
 			// Calculate grade distribution and statistics
 			const grades = activities.flatMap((activity: ActivityWithSubmissions) =>
@@ -58,24 +62,24 @@ export const gradebookRouter = createTRPCRouter({
 				activities: activities.map((activity: ActivityWithSubmissions) => ({
 					id: activity.id,
 					title: activity.title,
-					dueDate: activity.dueDate,
-					points: activity.points,
+					deadline: activity.deadline,
+					totalPoints: activity.configuration?.totalPoints,
 					submissions: activity.submissions.map((sub) => ({
 						studentId: sub.studentId,
-						studentName: sub.student.userId,
+						studentName: sub.student.name,
 						grade: sub.grade,
-						submitted: sub.status !== 'PENDING',
+						submitted: sub.status === 'SUBMITTED',
 					})),
 				})),
-				studentGrades: students.map((student: StudentProfile) => ({
-					studentId: student.id,
-					studentName: student.userId,
-					overallGrade: calculateOverallGrade(student.id, activities),
+				studentGrades: students.map((student) => ({
+					studentId: student.userId,
+					studentName: student.user.name,
+					overallGrade: calculateOverallGrade(student.userId, activities),
 					activityGrades: activities.map((activity: ActivityWithSubmissions) => ({
 						activityId: activity.id,
 						activityName: activity.title,
 						grade: activity.submissions.find((sub) => sub.studentId === student.id)?.grade ?? 0,
-						totalPoints: activity.points ?? 0,
+						totalPoints: activity.configuration?.totalPoints ?? 0,
 					})),
 				})),
 			};
@@ -86,14 +90,14 @@ export const gradebookRouter = createTRPCRouter({
 			activityId: z.string(),
 			studentId: z.string(),
 			grade: z.number().min(0),
+			feedback: z.string().optional(),
 		}))
 		.mutation(async ({ ctx, input }) => {
-			const { activityId, studentId, grade } = input;
+			const { activityId, studentId, grade, feedback } = input;
 
-			// Update or create submission with grade
-			return ctx.prisma.studentActivity.upsert({
+			return ctx.prisma.submission.upsert({
 				where: {
-					studentId_activityId: {
+					activityId_studentId: {
 						activityId,
 						studentId,
 					},
@@ -102,11 +106,18 @@ export const gradebookRouter = createTRPCRouter({
 					activityId,
 					studentId,
 					grade,
+					feedback,
 					status: 'GRADED',
+					gradedAt: new Date(),
+					gradedBy: ctx.session.user.id,
+					content: {},
 				},
 				update: {
 					grade,
+					feedback,
 					status: 'GRADED',
+					gradedAt: new Date(),
+					gradedBy: ctx.session.user.id,
 				},
 			});
 		}),

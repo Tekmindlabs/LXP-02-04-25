@@ -1,92 +1,83 @@
-import { ClassActivity, ActivityConfiguration } from "@/types/class-activity";
-import { format } from "date-fns";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+'use client';
+
+import { ActivityType, ClassActivity } from '@/types/class-activity';
+import {
+	MultipleChoiceActivity,
+	DragDropActivity,
+	FillBlanksActivity,
+	WordSearchActivity,
+	FlashcardActivity
+} from './types';
 
 interface ActivityViewProps {
 	activity: ClassActivity;
-	viewType: ActivityConfiguration['viewType'];
-	onSubmit?: (submission: any) => Promise<void>;
-	onGrade?: (activityId: string, studentId: string, grade: number, feedback?: string) => Promise<void>;
+	viewType: 'PREVIEW' | 'STUDENT' | 'CONFIGURATION';
+	onSubmit?: (data: any) => void;
 }
 
-export function ActivityView({ activity, viewType, onSubmit, onGrade }: ActivityViewProps) {
-	const renderActivityContent = () => {
+export function ActivityView({ activity, viewType, onSubmit }: ActivityViewProps) {
+	const renderActivity = () => {
 		switch (activity.type) {
 			case 'QUIZ_MULTIPLE_CHOICE':
-				return <MultipleChoiceView activity={activity} viewType={viewType} onSubmit={onSubmit} />;
+				return (
+					<MultipleChoiceActivity
+						config={activity.configuration}
+						viewType={viewType}
+						onSubmit={onSubmit}
+					/>
+				);
 			case 'QUIZ_DRAG_DROP':
-				return <DragDropView activity={activity} viewType={viewType} onSubmit={onSubmit} />;
-			// Add other activity type views
+				return (
+					<DragDropActivity
+						config={activity.configuration}
+						viewType={viewType}
+						onSubmit={onSubmit}
+					/>
+				);
+			case 'QUIZ_FILL_BLANKS':
+				return (
+					<FillBlanksActivity
+						config={activity.configuration}
+						viewType={viewType}
+						onSubmit={onSubmit}
+					/>
+				);
+			case 'GAME_WORD_SEARCH':
+				return (
+					<WordSearchActivity
+						config={activity.configuration}
+						viewType={viewType}
+						onSubmit={onSubmit}
+					/>
+				);
+			case 'GAME_FLASHCARDS':
+				return (
+					<FlashcardActivity
+						config={activity.configuration}
+						viewType={viewType}
+						onSubmit={onSubmit}
+					/>
+				);
 			default:
-				return <div>Unsupported activity type</div>;
+				return (
+					<div className="p-4 border rounded bg-muted">
+						<p className="text-muted-foreground">
+							Activity type {activity.type} is not supported yet.
+						</p>
+					</div>
+				);
 		}
 	};
 
-	const renderGradingInfo = () => {
-		if (!activity.configuration?.isGraded) return null;
-		
-		return (
-			<div className="mt-4 p-4 border rounded-lg bg-muted">
-				<h3 className="font-semibold mb-2">Grading Information</h3>
-				<div className="space-y-2 text-sm">
-					<p>Total Points: {activity.configuration.totalPoints}</p>
-					<p>Grading Type: {activity.configuration.gradingType}</p>
-					{activity.configuration.passingScore && (
-						<p>Passing Score: {activity.configuration.passingScore}%</p>
-					)}
-				</div>
-			</div>
-		);
-	};
-
 	return (
-		<Card>
-			<CardHeader className="flex flex-row items-center justify-between">
-				<div>
-					<h2 className="text-2xl font-bold">{activity.title}</h2>
-					{activity.description && (
-						<p className="text-muted-foreground mt-1">{activity.description}</p>
-					)}
-				</div>
-				<Badge variant={activity.status === 'PUBLISHED' ? 'default' : 'secondary'}>
-					{activity.status}
-				</Badge>
-			</CardHeader>
-			<CardContent className="space-y-6">
-				{activity.configuration?.instructions && (
-					<div className="bg-muted p-4 rounded-lg">
-						<h3 className="font-semibold mb-2">Instructions</h3>
-						<p>{activity.configuration.instructions}</p>
-					</div>
+		<div className="space-y-4">
+			<div className="space-y-2">
+				<h2 className="text-2xl font-bold">{activity.title}</h2>
+				{activity.description && (
+					<p className="text-muted-foreground">{activity.description}</p>
 				)}
-				
-				<div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-					{activity.configuration?.availabilityDate && (
-						<div>
-							Available from: {format(activity.configuration.availabilityDate, 'PPP')}
-						</div>
-					)}
-					{activity.configuration?.deadline && (
-						<div>
-							Due by: {format(activity.configuration.deadline, 'PPP')}
-						</div>
-					)}
-					{activity.configuration?.timeLimit && (
-						<div>
-							Time Limit: {Math.floor(activity.configuration.timeLimit / 60)} minutes
-						</div>
-					)}
-					{activity.configuration?.attempts && (
-						<div>
-							Attempts Allowed: {activity.configuration.attempts}
-						</div>
-					)}
-				</div>
-
-				{viewType !== 'CONFIGURATION' && renderActivityContent()}
-				{viewType === 'CONFIGURATION' && renderGradingInfo()}
-			</CardContent>
-		</Card>
+			</div>
+			{renderActivity()}
+		</div>
 	);
 }

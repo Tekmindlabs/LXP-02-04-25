@@ -46,6 +46,7 @@ model User {
 
   // Activity Tracking
   activityLogs ActivityLog[]
+  submissions  ActivitySubmission[] @relation("StudentSubmissions")
 
   @@map("users")
 }
@@ -314,21 +315,21 @@ model Class {
 
 // Profile Models
 model StudentProfile {
-  id          String            @id @default(cuid())
-  user        User              @relation(fields: [userId], references: [id])
-  userId      String            @unique
+  id          String          @id @default(cuid())
+  user        User            @relation(fields: [userId], references: [id])
+  userId      String          @unique
   dateOfBirth DateTime?
-  class       Class?            @relation(fields: [classId], references: [id])
+  class       Class?          @relation(fields: [classId], references: [id])
   classId     String?
-  activities  StudentActivity[]
   attendance  Attendance[]
-  parent      ParentProfile?    @relation(fields: [parentId], references: [id])
+  parent      ParentProfile?  @relation(fields: [parentId], references: [id])
   parentId    String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@map("student_profiles")
 }
+
 
 model TeacherProfile {
   id             String           @id @default(cuid())
@@ -453,7 +454,7 @@ model ActivitySubmission {
   gradedBy    String?
   
   activity    ClassActivity @relation(fields: [activityId], references: [id])
-  student     User         @relation(fields: [studentId], references: [id])
+  student     User         @relation("StudentSubmissions", fields: [studentId], references: [id])
 
   @@index([activityId])
   @@index([studentId])
@@ -721,6 +722,14 @@ enum EventType {
 }
 
 enum ActivityType {
+  QUIZ_MULTIPLE_CHOICE
+  QUIZ_DRAG_DROP
+  QUIZ_FILL_BLANKS
+  QUIZ_MEMORY
+  QUIZ_TRUE_FALSE
+  GAME_WORD_SEARCH
+  GAME_CROSSWORD
+  GAME_FLASHCARDS
   QUIZ
   ASSIGNMENT
   READING
