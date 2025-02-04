@@ -1,48 +1,57 @@
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ActivityTemplate, ActivityType, ActivityConfiguration } from "@/types/class-activity";
+import { ActivityConfiguration, ActivityType } from "@/types/class-activity";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const activityFormSchema = z.object({
 	title: z.string().min(3, "Title must be at least 3 characters"),
 	description: z.string().optional(),
-	timeLimit: z.number().min(0).optional(),
-	attempts: z.number().min(1).optional(),
-	passingScore: z.number().min(0).max(100).optional(),
-	instructions: z.string().optional(),
+	type: z.custom<ActivityType>(),
+	configuration: z.object({
+		timeLimit: z.number().min(0).optional(),
+		attempts: z.number().min(1).optional(),
+		passingScore: z.number().min(0).max(100).optional(),
+		instructions: z.string().optional(),
+		availabilityDate: z.date().optional(),
+		deadline: z.date().optional(),
+		isGraded: z.boolean(),
+		totalPoints: z.number().min(0).optional(),
+		gradingType: z.enum(['AUTOMATIC', 'MANUAL', 'NONE']),
+		viewType: z.enum(['PREVIEW', 'STUDENT', 'CONFIGURATION'])
+	})
 });
 
 type ActivityFormValues = z.infer<typeof activityFormSchema>;
 
 interface ActivityCreationFormProps {
-	template: ActivityTemplate;
 	onSubmit: (values: ActivityFormValues) => void;
 	onCancel: () => void;
+	initialValues?: Partial<ActivityFormValues>;
 }
 
-export function ActivityCreationForm({ template, onSubmit, onCancel }: ActivityCreationFormProps) {
+export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: ActivityCreationFormProps) {
 	const form = useForm<ActivityFormValues>({
 		resolver: zodResolver(activityFormSchema),
-		defaultValues: {
-			title: template.title,
-			description: template.description,
-			timeLimit: template.configuration.timeLimit,
-			attempts: template.configuration.attempts,
-			passingScore: template.configuration.passingScore,
-			instructions: template.configuration.instructions,
-		},
+		defaultValues: initialValues || {
+			configuration: {
+				isGraded: false,
+				gradingType: 'NONE',
+				viewType: 'CONFIGURATION'
+			}
+		}
 	});
 
 	return (
-		<Card className="w-full max-w-2xl mx-auto">
+		<Card>
 			<CardHeader>
-				<CardTitle>Configure Activity</CardTitle>
+				<CardTitle>Create Activity</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<Form {...form}>
@@ -75,63 +84,62 @@ export function ActivityCreationForm({ template, onSubmit, onCancel }: ActivityC
 							)}
 						/>
 
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-							<FormField
-								control={form.control}
-								name="timeLimit"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Time Limit (seconds)</FormLabel>
-										<FormControl>
-											<Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="attempts"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Attempts Allowed</FormLabel>
-										<FormControl>
-											<Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
 						<FormField
 							control={form.control}
-							name="passingScore"
+							name="configuration.isGraded"
 							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Passing Score (%)</FormLabel>
+								<FormItem className="flex items-center justify-between">
+									<FormLabel>Enable Grading</FormLabel>
 									<FormControl>
-										<Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+										<Switch 
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
 									</FormControl>
-									<FormMessage />
 								</FormItem>
 							)}
 						/>
 
-						<FormField
-							control={form.control}
-							name="instructions"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Instructions</FormLabel>
-									<FormControl>
-										<Textarea {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{form.watch('configuration.isGraded') && (
+							<>
+								<FormField
+									control={form.control}
+									name="configuration.gradingType"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Grading Type</FormLabel>
+											<Select onValueChange={field.onChange} defaultValue={field.value}>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select grading type" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="AUTOMATIC">Automatic</SelectItem>
+													<SelectItem value="MANUAL">Manual</SelectItem>
+													<SelectItem value="NONE">None</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="configuration.totalPoints"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Total Points</FormLabel>
+											<FormControl>
+												<Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
 
 						<div className="flex justify-end space-x-2">
 							<Button type="button" variant="outline" onClick={onCancel}>

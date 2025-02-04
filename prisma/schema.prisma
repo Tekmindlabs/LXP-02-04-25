@@ -415,41 +415,48 @@ model Attendance {
 
 // Activity & Assessment Models
 model ClassActivity {
-  id          String    @id @default(cuid())
-  type        String    // 'ASSIGNMENT' | 'QUIZ' | 'PROJECT' | 'DISCUSSION'
-  title       String
-  description String
-  dueDate     DateTime?
-  points      Int?
-  status      String    // 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
-  subject     Subject   @relation(fields: [subjectId], references: [id])
-  subjectId   String
-  classGroup  ClassGroup? @relation(fields: [classGroupId], references: [id])
-  classGroupId String?
-  class       Class?    @relation(fields: [classId], references: [id])
-  classId     String?
-  resources   Resource[]
-  submissions StudentActivity[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  type            String
+  status          String    // 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+  deadline        DateTime?
+  classId         String?
+  classGroupId    String?
+  subject         Subject   @relation(fields: [subjectId], references: [id])
+  subjectId       String
+  gradingCriteria String?
+  configuration   Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  submissions     ActivitySubmission[]
+  resources       Resource[]
+  class          Class?     @relation(fields: [classId], references: [id])
+  classGroup     ClassGroup? @relation(fields: [classGroupId], references: [id])
 
   @@unique([title, classId])
+  @@index([classId])
+  @@index([classGroupId])
 }
 
-model StudentActivity {
-  id             String         @id @default(cuid())
-  student        StudentProfile @relation(fields: [studentId], references: [id])
-  studentId      String
-  activity       ClassActivity  @relation(fields: [activityId], references: [id])
-  activityId     String
-  status         ActivityStatus @default(PENDING)
-  grade          Float?
-  feedback       String?
-  submissionDate DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+model ActivitySubmission {
+  id          String    @id @default(cuid())
+  activityId  String
+  studentId   String
+  content     Json
+  grade       Float?
+  feedback    String?
+  status      String    @default("SUBMITTED") // SUBMITTED, GRADED, PENDING
+  submittedAt DateTime  @default(now())
+  gradedAt    DateTime?
+  gradedBy    String?
+  
+  activity    ClassActivity @relation(fields: [activityId], references: [id])
+  student     User         @relation(fields: [studentId], references: [id])
 
-  @@unique([studentId, activityId])
+  @@index([activityId])
+  @@index([studentId])
 }
 
 model Resource {

@@ -31,6 +31,30 @@ export interface ActivityConfiguration {
 	attempts?: number;
 	passingScore?: number;
 	instructions?: string;
+	availabilityDate?: Date;
+	deadline?: Date;
+	isGraded: boolean;
+	totalPoints?: number;
+	gradingType: 'AUTOMATIC' | 'MANUAL' | 'NONE';
+	viewType: 'PREVIEW' | 'STUDENT' | 'CONFIGURATION';
+}
+
+export interface ActivitySubmission {
+	id: string;
+	activityId: string;
+	studentId: string;
+	submittedAt: Date;
+	content: any;
+	grade?: number;
+	feedback?: string;
+	status: 'SUBMITTED' | 'GRADED' | 'PENDING';
+}
+
+export interface GradingResult {
+	grade: number;
+	feedback?: string;
+	gradedBy?: string;
+	gradedAt: Date;
 }
 
 export interface MultipleChoiceConfig extends ActivityConfiguration {
