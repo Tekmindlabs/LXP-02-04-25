@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-import { ActivityType } from "@prisma/client";
+
 import {
 	Table,
 	TableBody,
@@ -20,9 +20,56 @@ import {
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+interface ActivityWithRelations {
+	id: string;
+	title: string;
+	description: string | null;
+	type: ActivityType;
+	status: string;
+	deadline: Date | null;
+	classId: string | null;
+	classGroupId: string | null;
+	subjectId: string;
+	gradingCriteria: string | null;
+	class: {
+		name: string;
+	} | null;
+	classGroup: {
+		name: string;
+	} | null;
+	submissions: Array<{
+		id: string;
+		status: string;
+		grade: number | null;
+		submittedAt: Date;
+		student: {
+			name: string | null;
+		};
+	}>;
+}
+
 interface Props {
 	onEdit: (id: string) => void;
 }
+
+// Define activity types as a const enum
+const ActivityTypes = {
+	QUIZ_MULTIPLE_CHOICE: 'QUIZ_MULTIPLE_CHOICE',
+	QUIZ_DRAG_DROP: 'QUIZ_DRAG_DROP',
+	QUIZ_FILL_BLANKS: 'QUIZ_FILL_BLANKS',
+	QUIZ_MEMORY: 'QUIZ_MEMORY',
+	QUIZ_TRUE_FALSE: 'QUIZ_TRUE_FALSE',
+	GAME_WORD_SEARCH: 'GAME_WORD_SEARCH',
+	GAME_CROSSWORD: 'GAME_CROSSWORD',
+	GAME_FLASHCARDS: 'GAME_FLASHCARDS',
+	QUIZ: 'QUIZ',
+	ASSIGNMENT: 'ASSIGNMENT',
+	READING: 'READING',
+	PROJECT: 'PROJECT',
+	EXAM: 'EXAM'
+} as const;
+
+type ActivityType = typeof ActivityTypes[keyof typeof ActivityTypes];
 
 interface Filters {
 	search: string;
@@ -37,13 +84,13 @@ export default function ClassActivityList({ onEdit }: Props) {
 	const { toast } = useToast();
 
 	const utils = api.useContext();
-	const { data: activities } = api.classActivity.getAll.useQuery(filters);
+	const { data: activities } = api.classActivity.getAll.useQuery(filters) as { data: ActivityWithRelations[] | undefined };
 	const { data: classGroups } = api.classGroup.getAllClassGroups.useQuery();
-	const { data: classes } = api.class.searchClasses.useQuery({});
 	const { data: selectedActivityDetails } = api.classActivity.getById.useQuery(
 		selectedActivity as string,
 		{ enabled: !!selectedActivity }
-	);
+	) as { data: ActivityWithRelations | undefined };
+
 
 	const deleteMutation = api.classActivity.delete.useMutation({
 		onSuccess: () => {
@@ -85,9 +132,9 @@ export default function ClassActivityList({ onEdit }: Props) {
 						<SelectValue placeholder="Filter by type" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={null}>All Types</SelectItem>
-						{Object.values(ActivityType).map((type) => (
-							<SelectItem key={type} value={type}>{type}</SelectItem>
+						<SelectItem value="">All Types</SelectItem>
+						{Object.entries(ActivityTypes).map(([key, value]) => (
+							<SelectItem key={key} value={value}>{key.replace(/_/g, ' ')}</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
@@ -99,7 +146,7 @@ export default function ClassActivityList({ onEdit }: Props) {
 						<SelectValue placeholder="Filter by class group" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={null}>All Class Groups</SelectItem>
+						<SelectItem value="">All Class Groups</SelectItem>
 						{classGroups?.map((group) => (
 							<SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
 						))}
@@ -130,7 +177,7 @@ export default function ClassActivityList({ onEdit }: Props) {
 										: "No deadline"}
 								</TableCell>
 								<TableCell>
-									{activity.classGroup?.name || activity.class?.name || "N/A"}
+									{activity.class?.name || activity.classGroup?.name || "N/A"}
 								</TableCell>
 								<TableCell>
 									<Button
@@ -188,12 +235,12 @@ export default function ClassActivityList({ onEdit }: Props) {
 								<TableBody>
 									{selectedActivityDetails?.submissions?.map((submission) => (
 										<TableRow key={submission.id}>
-											<TableCell>{submission.student.user.name}</TableCell>
+											<TableCell>{submission.student.name}</TableCell>
 											<TableCell>{submission.status}</TableCell>
 											<TableCell>{submission.grade || 'Not graded'}</TableCell>
 											<TableCell>
-												{submission.submissionDate
-													? format(new Date(submission.submissionDate), "PPP")
+												{submission.submittedAt
+													? format(new Date(submission.submittedAt), "PPP")
 													: 'Not submitted'}
 											</TableCell>
 										</TableRow>

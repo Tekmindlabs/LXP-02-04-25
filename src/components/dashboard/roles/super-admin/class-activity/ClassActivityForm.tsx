@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ActivityType, ResourceType } from "@prisma/client";
+import { ResourceType } from "@prisma/client";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,45 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 
 
+// Define activity types as a const enum
+const ActivityTypes = {
+	QUIZ_MULTIPLE_CHOICE: 'QUIZ_MULTIPLE_CHOICE',
+	QUIZ_DRAG_DROP: 'QUIZ_DRAG_DROP',
+	QUIZ_FILL_BLANKS: 'QUIZ_FILL_BLANKS',
+	QUIZ_MEMORY: 'QUIZ_MEMORY',
+	QUIZ_TRUE_FALSE: 'QUIZ_TRUE_FALSE',
+	GAME_WORD_SEARCH: 'GAME_WORD_SEARCH',
+	GAME_CROSSWORD: 'GAME_CROSSWORD',
+	GAME_FLASHCARDS: 'GAME_FLASHCARDS',
+	QUIZ: 'QUIZ',
+	ASSIGNMENT: 'ASSIGNMENT',
+	READING: 'READING',
+	PROJECT: 'PROJECT',
+	EXAM: 'EXAM'
+} as const;
+
+type ActivityType = typeof ActivityTypes[keyof typeof ActivityTypes];
+
+interface Resource {
+	title: string;
+	type: ResourceType;
+	url: string;
+	fileInfo?: {
+		size: number;
+		createdAt: Date;
+		updatedAt: Date;
+		mimeType: string;
+		publicUrl: string;
+	};
+}
+
 const formSchema = z.object({
 	title: z.string().min(1, "Title is required"),
 	description: z.string().optional(),
-	type: z.nativeEnum(ActivityType),
+	type: z.enum(Object.values(ActivityTypes) as [ActivityType, ...ActivityType[]]),
+	classId: z.string(),
+	subjectId: z.string(),
 	classGroupId: z.string().optional(),
-	classId: z.string().optional(),
 	deadline: z.string().optional(),
 	gradingCriteria: z.string().optional(),
 	resources: z.array(z.object({
@@ -49,12 +82,13 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 	const utils = api.useContext();
 	const { data: classGroups } = api.classGroup.getAllClassGroups.useQuery();
 	const { data: classes } = api.class.searchClasses.useQuery({});
+	const { data: subjects } = api.subject.getAll.useQuery();
 	const form = useForm<FormData>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			title: "",
 			description: "",
-			type: ActivityType.ASSIGNMENT,
+			type: ActivityTypes.ASSIGNMENT,
 			gradingCriteria: "",
 		},
 	});
@@ -93,26 +127,74 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 			form.reset({
 				title: activity.title,
 				description: activity.description || "",
-				type: activity.type,
+				type: activity.type as ActivityType,
 				deadline: activity.deadline?.toISOString().split('T')[0],
 				gradingCriteria: activity.gradingCriteria || "",
+				classId: activity.classId || undefined,
+				classGroupId: activity.classGroupId || undefined,
+				subjectId: activity.subjectId,
 			});
 		}
 	}, [activity, form]);
 
 	const onSubmit = (data: FormData) => {
-		if (activityId) {
-			updateMutation.mutate({
-				id: activityId,
-				...data,
-				deadline: data.deadline ? new Date(data.deadline) : undefined,
+		if (!data.classId) {
+			toast({
+				title: "Error",
+				description: "Class is required",
+				variant: "destructive",
 			});
-		} else {
-			createMutation.mutate({
-				...data,
-				deadline: data.deadline ? new Date(data.deadline) : undefined,
-			});
+			return;
 		}
+
+		if (!data.subjectId) {
+			toast({
+				title: "Error",
+				description: "Subject is required",
+				variant: "destructive",
+			});
+			return;
+		}
+
+		if (activityId) {
+            updateMutation.mutate({
+                id: activityId,
+                title: data.title,
+                description: data.description,
+                type: data.type,
+                classId: data.classId,
+                subjectId: data.subjectId,
+                deadline: data.deadline ? new Date(data.deadline) : undefined,
+                gradingCriteria: data.gradingCriteria,
+            });
+        } else {
+            createMutation.mutate({
+                title: data.title,
+                description: data.description,
+                type: data.type,
+                classId: data.classId,
+                subjectId: data.subjectId,
+                deadline: data.deadline ? new Date(data.deadline) : undefined,
+                gradingCriteria: data.gradingCriteria,
+                resources: data.resources,
+            });
+        }
+	};
+
+	const handleResourceUpload = (resource: Resource, index: number, filePath: string, fileInfo: any) => {
+		const newResources = [...(form.getValues('resources') || [])];
+		newResources[index] = {
+			...resource,
+			url: filePath,
+			fileInfo: {
+				size: fileInfo.size,
+				createdAt: new Date(fileInfo.createdAt),
+				updatedAt: new Date(fileInfo.updatedAt),
+				mimeType: fileInfo.mimeType,
+				publicUrl: fileInfo.publicUrl,
+			},
+		};
+		form.setValue('resources', newResources);
 	};
 
 	return (
@@ -159,9 +241,9 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									{Object.values(ActivityType).map((type) => (
-										<SelectItem key={type} value={type}>
-											{type}
+									{Object.entries(ActivityTypes).map(([key, value]) => (
+										<SelectItem key={key} value={value}>
+											{key.replace(/_/g, ' ')}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -201,6 +283,31 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 									{classGroups?.map((group) => (
 										<SelectItem key={group.id} value={group.id}>
 											{group.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="subjectId"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Subject</FormLabel>
+							<Select onValueChange={field.onChange} value={field.value}>
+								<FormControl>
+									<SelectTrigger>
+										<SelectValue placeholder="Select subject" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									{subjects?.map((subject) => (
+										<SelectItem key={subject.id} value={subject.id}>
+											{subject.name}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -310,14 +417,12 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 												<div className="flex-1">
 													<FileUpload
 														subDir={`activity-resources/${activity?.id || 'new'}`}
-														onUploadComplete={(filePath, fileInfo) => {
-															const newResources = [...field.value!];
-															newResources[index].url = filePath;
-															newResources[index].fileInfo = fileInfo;
-															field.onChange(newResources);
-														}}
+														onUploadComplete={(filePath, fileInfo) => 
+															handleResourceUpload(resource, index, filePath, fileInfo)
+														}
 														allowedTypes={['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
 													/>
+
 												</div>
 											)}
 											<Button

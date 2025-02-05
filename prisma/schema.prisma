@@ -201,30 +201,10 @@ model Program {
   calendar      Calendar            @relation(fields: [calendarId], references: [id])
   calendarId    String
   classGroups   ClassGroup[]
-  courses       Course[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
   @@map("programs")
-}
-
-model Course {
-  id             String       @id @default(cuid())
-  name           String
-  academicYear   String
-  program        Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
-  programId      String
-  subjects       Subject[]
-  classGroups    ClassGroup[] // New relation
-  isTemplate     Boolean      @default(false)
-  parentCourseId String?      // For tracking inheritance
-  parentCourse   Course?      @relation("CourseInheritance", fields: [parentCourseId], references: [id], onDelete: SetNull)
-  childCourses   Course[]     @relation("CourseInheritance")
-  settings       Json?        // Course settings
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@map("courses")
 }
 
 model ClassGroup {
@@ -233,8 +213,6 @@ model ClassGroup {
   description String?
   program     Program         @relation(fields: [programId], references: [id], onDelete: Cascade)
   programId   String
-  course      Course?         @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  courseId    String?
   calendar    Calendar        @relation(fields: [calendarId], references: [id], onDelete: Restrict)
   calendarId  String
   classes     Class[]
@@ -254,13 +232,10 @@ model Subject {
   name            String
   code            String              @unique
   description     String?
-  courseStructure Json?               // Stores CourseStructure as JSON
   status          Status              @default(ACTIVE)
   classGroups     ClassGroup[]
   teachers        TeacherSubject[]
   periods         Period[]
-  course          Course?             @relation(fields: [courseId], references: [id])
-  courseId        String?
   teacherAssignments TeacherAssignment[]
   activities      ClassActivity[]
   progress        ProgressTracking[]
@@ -269,6 +244,7 @@ model Subject {
 
   @@map("subjects")
 }
+
 
 model TeacherAssignment {
   id             String   @id @default(cuid())

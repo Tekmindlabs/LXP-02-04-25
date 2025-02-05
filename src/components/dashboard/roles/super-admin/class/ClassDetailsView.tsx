@@ -277,11 +277,11 @@ export const ClassDetailsView = ({ classId }: ClassDetailsViewProps) => {
 
 				<TabsContent value="gradebook">
 					<GradebookComponent 
-						courseId={classDetails.classGroupId} 
 						classId={classDetails.id}
-						type="class"
+						type="teacher"
 					/>
 				</TabsContent>
+
 
 				<TabsContent value="calendar">
 					<Card>

@@ -1,180 +1,71 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { Status, Prisma } from "@prisma/client";
+import { Status } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-
-const courseSettingsSchema = z.object({
-	allowLateSubmissions: z.boolean(),
-	gradingScale: z.string(),
-	attendanceRequired: z.boolean(),
-});
-
-const courseSchema = z.object({
-	name: z.string(),
-	isTemplate: z.boolean(),
-	templateId: z.string().optional(),
-	subjects: z.array(z.string()),
-	settings: courseSettingsSchema,
-});
 
 const calendarSchema = z.object({
 	id: z.string(),
-	inheritSettings: z.boolean(),
+	inheritSettings: z.boolean().optional(),
 });
 
 export const classGroupRouter = createTRPCRouter({
-	createClassGroup: protectedProcedure
+	create: protectedProcedure
 		.input(z.object({
 			name: z.string(),
 			description: z.string().optional(),
 			programId: z.string(),
 			status: z.enum([Status.ACTIVE, Status.INACTIVE, Status.ARCHIVED]).default(Status.ACTIVE),
-			course: courseSchema,
 			calendar: calendarSchema,
 		}))
 		.mutation(async ({ ctx, input }) => {
-			const { course, calendar, ...classGroupData } = input;
+			const { calendar, ...classGroupData } = input;
 
 			return ctx.prisma.$transaction(async (tx) => {
-				// Create course first
-				const createdCourse = await tx.course.create({
-					data: {
-						name: course.name,
-						academicYear: new Date().getFullYear().toString(),
-						isTemplate: course.isTemplate,
-						programId: classGroupData.programId,
-						settings: course.settings as Prisma.InputJsonValue,
-						subjects: {
-							connect: course.subjects.map(id => ({ id }))
-						},
-						...(course.templateId ? {
-							parentCourseId: course.templateId
-						} : {})
-					}
-				});
-
-
-				// Create class group with course and calendar references
 				const classGroup = await tx.classGroup.create({
 					data: {
 						...classGroupData,
-						courseId: createdCourse.id,
 						calendarId: calendar.id,
 					},
 					include: {
-						program: true,
-						subjects: true,
 						classes: true,
-						course: true,
 						calendar: true,
-
-					},
+					}
 				});
-
-				// If inheriting calendar settings, copy them
-				if (calendar.inheritSettings && classGroup.calendar?.metadata) {
-					const calendarMetadata = classGroup.calendar.metadata as Prisma.JsonValue;
-					await tx.course.update({
-						where: { id: createdCourse.id },
-						data: {
-							settings: {
-								...course.settings,
-								...(typeof calendarMetadata === 'object' ? calendarMetadata : {})
-							} as Prisma.InputJsonValue
-						}
-					});
-				}
-
-
 
 				return classGroup;
 			});
 		}),
 
-	updateClassGroup: protectedProcedure
+	update: protectedProcedure
+
 		.input(z.object({
-			id: z.string(),
-			name: z.string().optional(),
-			description: z.string().optional(),
-			programId: z.string().optional(),
-			status: z.enum([Status.ACTIVE, Status.INACTIVE, Status.ARCHIVED]).optional(),
-			course: courseSchema.optional(),
-			calendar: calendarSchema.optional(),
+		  id: z.string(),
+		  name: z.string().optional(),
+		  description: z.string().optional(),
+		  programId: z.string().optional(),
+		  status: z.enum([Status.ACTIVE, Status.INACTIVE, Status.ARCHIVED]).optional(),
+		  calendar: calendarSchema.optional(),
 		}))
 		.mutation(async ({ ctx, input }) => {
-			const { id, course, calendar, ...data } = input;
+		  const { id, calendar, ...data } = input;
 
-			return ctx.prisma.$transaction(async (tx) => {
-				const classGroup = await tx.classGroup.findUnique({
-					where: { id },
-					include: { course: true }
-				});
-
-				if (!classGroup) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Class group not found"
-					});
-				}
-
-				// Update course if provided
-				if (course && classGroup.course) {
-					await tx.course.update({
-						where: { id: classGroup.course.id },
-						data: {
-							name: course.name,
-							isTemplate: course.isTemplate,
-							parentCourseId: course.templateId,
-							settings: course.settings,
-							subjects: {
-								set: course.subjects.map(id => ({ id }))
-							}
-						}
-					});
-				}
-
-				// Update calendar if provided
-				if (calendar) {
-					await tx.classGroup.update({
-						where: { id },
-						data: { calendarId: calendar.id }
-					});
-
-					if (calendar.inheritSettings && classGroup.course) {
-						const calendarSettings = await tx.calendar.findUnique({
-							where: { id: calendar.id },
-							select: { metadata: true }
-						});
-
-						if (calendar.inheritSettings && calendarSettings?.metadata) {
-							const metadata = calendarSettings.metadata as Prisma.JsonValue;
-							await tx.course.update({
-								where: { id: classGroup.course.id },
-								data: {
-									settings: {
-										...(typeof classGroup.course.settings === 'object' ? classGroup.course.settings : {}),
-										...(typeof metadata === 'object' ? metadata : {})
-									} as Prisma.InputJsonValue
-								}
-							});
-						}
-					}
-				}
-
-				// Update class group
-				return tx.classGroup.update({
-					where: { id },
-					data,
-					include: {
-						program: true,
-						subjects: true,
-						classes: true,
-						course: true,
-						calendar: true,
-					},
-				});
+		  return ctx.prisma.$transaction(async (tx) => {
+			const classGroup = await tx.classGroup.update({
+			  where: { id },
+			  data: {
+				...data,
+				...(calendar && { calendarId: calendar.id }),
+			  },
+			  include: {
+				classes: true,
+				calendar: true,
+			  }
 			});
+
+			return classGroup;
+		  });
 		}),
+
 
 	deleteClassGroup: protectedProcedure
 		.input(z.string())

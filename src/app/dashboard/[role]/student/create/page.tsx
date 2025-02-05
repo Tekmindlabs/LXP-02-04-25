@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useForm } from 'react-hook-form';
@@ -13,6 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { api } from '@/utils/api';
 import { useToast } from '@/hooks/use-toast';
 
+interface PageParams {
+	role: string;
+}
+
 const formSchema = z.object({
 	name: z.string().min(1, { message: 'Name is required' }),
 	email: z.string().email({ message: 'Invalid email address' }),
@@ -24,9 +28,9 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function CreateStudentPage({ params }: { params: { role: string } }) {
+export default function CreateStudentPage({ params }: { params: PageParams }) {
 	const router = useRouter();
-	const { role } = use(params);
+	const role = params.role;
 	const { toast } = useToast();
 
 	const [password, setPassword] = useState('');
