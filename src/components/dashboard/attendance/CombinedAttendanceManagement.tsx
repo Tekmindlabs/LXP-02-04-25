@@ -1,6 +1,9 @@
 
 import { useState, useEffect } from 'react';
+import { TRPCClientErrorBase } from '@trpc/client';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Calendar } from '@/components/ui/calendar';
+import type { RouterOutputs } from '@/utils/api';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -36,34 +39,45 @@ export const CombinedAttendanceManagement = () => {
   const [activeTab, setActiveTab] = useState<string>('quick');
   const [attendanceData, setAttendanceData] = useState<Map<string, AttendanceStatus>>(new Map());
 
-  // Check user roles
-  const isAdmin = session?.user?.roles?.includes('ADMIN') || session?.user?.roles?.includes('SUPER_ADMIN');
-  const isTeacher = session?.user?.roles?.includes('TEACHER');
+  // Improved role checking
+  const userRoles = session?.user?.roles || [];
+  const isAdmin = userRoles.includes('ADMIN');
+  const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+  const isTeacher = userRoles.includes('TEACHER');
+  const hasAccessPermission = isAdmin || isSuperAdmin || isTeacher;
 
-  console.log('Session Status:', sessionStatus);
-  console.log('User Session:', {
-    id: session?.user?.id,
-    roles: session?.user?.roles,
-    isAdmin,
-    isTeacher
-  });
+  // Debug logging
+  useEffect(() => {
+    console.log('Session Status:', sessionStatus);
+    console.log('User Roles:', userRoles);
+    console.log('Access Permissions:', {
+      isAdmin,
+      isSuperAdmin,
+      isTeacher,
+      hasAccessPermission
+    });
+  }, [sessionStatus, userRoles, isAdmin, isSuperAdmin, isTeacher, hasAccessPermission]);
 
-  // Fetch classes with unified error handling
+  // Type definition for stats data
+  type StatsData = RouterOutputs['attendance']['getStats'];
+
+
+  // Modified class fetching query
   const { data: classes, error: classError } = api.class.list.useQuery(
     undefined,
     {
-      enabled: !!session?.user && (isAdmin || isTeacher),
-      retry: false
+      enabled: sessionStatus === 'authenticated' && hasAccessPermission,
+      retry: 1
     }
   );
 
-  // Handle class loading error
+  // Effect for error handling
   useEffect(() => {
     if (classError) {
-      console.error('Classes error:', classError);
+      console.error('Class fetch error:', classError);
       toast({
         title: "Error",
-        description: "Failed to load classes",
+        description: "Failed to load classes: " + classError.message,
         variant: "destructive"
       });
     }
@@ -128,18 +142,32 @@ export const CombinedAttendanceManagement = () => {
         status,
         date: selectedDate,
         classId: selectedClass,
-        notes: undefined // Add optional notes field
+        notes: undefined
       }));
 
-      await saveAttendanceMutation.mutateAsync({
-        records
-      });
+        // Optimistic update with proper typing
+        utils.attendance.getStats.setData(undefined, (old: StatsData | undefined) => ({
+        ...old,
+        todayStats: {
+          ...old?.todayStats,
+          present: records.filter(r => r.status === AttendanceStatus.PRESENT).length,
+          absent: records.filter(r => r.status === AttendanceStatus.ABSENT).length,
+        }
+        }));
+
+      await saveAttendanceMutation.mutateAsync({ records });
+
+      // Invalidate queries to refresh data
+      await Promise.all([
+        utils.attendance.getStats.invalidate(),
+        utils.attendance.getDashboardData.invalidate()
+      ]);
 
       toast({
         title: "Success",
         description: "Attendance saved successfully"
       });
-    } catch (error: Error | unknown) {
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to save attendance",
@@ -150,23 +178,58 @@ export const CombinedAttendanceManagement = () => {
 
 
   // Fetch stats and dashboard data
-  const { data: statsData, isLoading: isStatsLoading } = api.attendance.getStats.useQuery();
-  const { data: dashboardData, isLoading: isDashboardLoading } = api.attendance.getDashboardData.useQuery();
+  const utils = api.useUtils();
+
+  const { 
+    data: statsData, 
+    isLoading: isStatsLoading,
+    error: statsError 
+  } = api.attendance.getStats.useQuery(undefined, {
+    refetchInterval: 30000, // Refetch every 30 seconds
+    retry: 3
+  });
+
+  const { 
+    data: dashboardData, 
+    isLoading: isDashboardLoading,
+    error: dashboardError,
+    refetch: refetchDashboardData 
+  } = api.attendance.getDashboardData.useQuery(undefined, {
+    refetchInterval: 30000,
+    retry: 3
+  });
+
+  const ErrorMessage = ({ error }: { error: TRPCClientErrorBase<any> }) => (
+    <div className="p-4 border border-red-200 rounded bg-red-50">
+      <p className="text-red-600">Error: {error.message}</p>
+    </div>
+  );
+
+  // Add auto-refresh effect for active tab
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (activeTab === 'dashboard') {
+        void refetchDashboardData();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [activeTab, refetchDashboardData]);
 
 
   return (
     <div className="container mx-auto p-4">
         {isStatsLoading ? (
-        <div className="flex justify-center p-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+          <LoadingSpinner />
+        ) : statsError ? (
+          <ErrorMessage error={statsError} />
         ) : (
-        <AttendanceStats {...(statsData || {
+          <AttendanceStats {...(statsData || {
           todayStats: { present: 0, absent: 0, total: 0 },
           weeklyPercentage: 0,
           mostAbsentStudents: [],
           lowAttendanceClasses: []
-        })} />
+          })} />
         )}
 
       <Card className="mb-4">
@@ -186,9 +249,9 @@ export const CombinedAttendanceManagement = () => {
 
             <TabsContent value="dashboard">
             {isDashboardLoading ? (
-              <div className="flex justify-center p-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
+              <LoadingSpinner />
+            ) : dashboardError ? (
+              <ErrorMessage error={dashboardError} />
             ) : (
               <AttendanceDashboard 
               attendanceTrend={dashboardData?.attendanceTrend}
@@ -209,25 +272,24 @@ export const CombinedAttendanceManagement = () => {
                   <SelectValue placeholder="Select a class" />
                   </SelectTrigger>
                   <SelectContent>
-                  {!session?.user ? (
+                    {sessionStatus === 'loading' ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                    ) : !session?.user ? (
                     <SelectItem value="not-signed-in" disabled>Please sign in</SelectItem>
-                  ) : !isAdmin && !isTeacher ? (
+                    ) : !hasAccessPermission ? (
                     <SelectItem value="unauthorized" disabled>Unauthorized access</SelectItem>
-                  ) : classError ? (
+                    ) : classError ? (
                     <SelectItem value="error-loading" disabled>Error loading classes</SelectItem>
-                  ) : classes ? (
-                    classes.length > 0 ? (
+                    ) : !classes?.length ? (
+                    <SelectItem value="no-classes" disabled>No classes found</SelectItem>
+                    ) : (
                     classes.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id}>
                       {cls.name}
                       </SelectItem>
                     ))
-                    ) : (
-                    <SelectItem value="no-classes" disabled>No classes found</SelectItem>
-                    )
-                  ) : (
-                    <SelectItem value="loading" disabled>Loading classes...</SelectItem>
-                  )}
+                    )}
+
                   </SelectContent>
                 </Select>
             </div>

@@ -1,7 +1,16 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { AttendanceStatus } from "@prisma/client";
+import { AttendanceStatus, Prisma } from "@prisma/client";
 import { startOfDay, endOfDay, subDays, startOfWeek, format } from "date-fns";
+import { TRPCError } from "@trpc/server";
+
+// Cache implementation
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+interface CacheEntry<T> {
+    data: T;
+    timestamp: number;
+}
+const statsCache = new Map<string, CacheEntry<any>>();
 
 export const attendanceRouter = createTRPCRouter({
     getByDateAndClass: protectedProcedure
@@ -67,184 +76,158 @@ export const attendanceRouter = createTRPCRouter({
         );
       }),
 
-  getStats: protectedProcedure.query(async ({ ctx }) => {
-    const today = new Date();
-    const weekStart = startOfWeek(today);
-
-    // Get today's stats with student and class info
-    const todayAttendance = await ctx.prisma.attendance.findMany({
-      where: {
-        date: {
-          gte: startOfDay(today),
-          lte: endOfDay(today),
-        },
-      },
-      include: {
-        student: {
-          include: {
-            user: true,
-            class: true
-          }
+getStats: protectedProcedure.query(async ({ ctx }) => {
+    try {
+        const cacheKey = `stats_${ctx.session.user.id}`;
+        const cached = statsCache.get(cacheKey);
+        
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+            return cached.data;
         }
-      }
-    });
 
-    // Get weekly attendance
-    const weeklyAttendance = await ctx.prisma.attendance.findMany({
-      where: {
-        date: {
-          gte: weekStart,
-          lte: today,
-        },
-      }
-    });
+        const today = new Date();
+        const weekStart = startOfWeek(today);
 
-    // Get most absent students
-    const absentStudents = await ctx.prisma.attendance.groupBy({
-      by: ['studentId'],
-      where: {
-        status: AttendanceStatus.ABSENT,
-        date: {
-          gte: subDays(today, 30),
-        },
-      },
-      _count: {
-        studentId: true
-      },
-      orderBy: {
-        _count: {
-          studentId: 'desc'
-        }
-      },
-      take: 3,
-    });
+        // Optimized query using Prisma raw queries for better performance
+        const [todayStats, weeklyStats, absentStudents, classStats] = await Promise.all([
+            // Today's attendance stats
+            ctx.prisma.$queryRaw<any[]>`
+                SELECT 
+                    COUNT(CASE WHEN status = 'PRESENT' THEN 1 END) as present_count,
+                    COUNT(CASE WHEN status = 'ABSENT' THEN 1 END) as absent_count,
+                    COUNT(*) as total_count
+                FROM Attendance
+                WHERE date >= ${startOfDay(today)} AND date <= ${endOfDay(today)}
+            `,
+            // Weekly attendance percentage
+            ctx.prisma.$queryRaw<any[]>`
+                SELECT 
+                    COUNT(CASE WHEN status = 'PRESENT' THEN 1 END) * 100.0 / COUNT(*) as percentage
+                FROM Attendance
+                WHERE date >= ${weekStart} AND date <= ${today}
+            `,
+            // Most absent students with details
+            ctx.prisma.$queryRaw<any[]>`
+                SELECT 
+                    s.id as student_id,
+                    u.name as student_name,
+                    COUNT(*) as absence_count
+                FROM Attendance a
+                JOIN StudentProfile s ON a.studentId = s.id
+                JOIN User u ON s.userId = u.id
+                WHERE a.status = 'ABSENT'
+                    AND a.date >= ${subDays(today, 30)}
+                GROUP BY s.id, u.name
+                ORDER BY absence_count DESC
+                LIMIT 3
+            `,
+            // Class-wise attendance
+            ctx.prisma.$queryRaw<any[]>`
+                SELECT 
+                    c.name as class_name,
+                    COUNT(CASE WHEN a.status = 'PRESENT' THEN 1 END) * 100.0 / COUNT(*) as attendance_percentage
+                FROM Attendance a
+                JOIN StudentProfile s ON a.studentId = s.id
+                JOIN Class c ON s.classId = c.id
+                WHERE a.date = ${today}
+                GROUP BY c.name
+                ORDER BY attendance_percentage ASC
+                LIMIT 3
+            `
+        ]);
 
-    // Get student details for absent students
-    const absentStudentDetails = await Promise.all(
-      absentStudents.map(async (record) => {
-        const student = await ctx.prisma.studentProfile.findUnique({
-          where: { id: record.studentId },
-          include: { user: true }
-        });
-        return {
-          name: student?.user.name ?? 'Unknown',
-          absences: record._count.studentId
+        const result = {
+            todayStats: {
+                present: Number(todayStats[0]?.present_count) || 0,
+                absent: Number(todayStats[0]?.absent_count) || 0,
+                total: Number(todayStats[0]?.total_count) || 0
+            },
+            weeklyPercentage: Number(weeklyStats[0]?.percentage) || 0,
+            mostAbsentStudents: absentStudents.map(student => ({
+                name: student.student_name,
+                absences: Number(student.absence_count)
+            })),
+            lowAttendanceClasses: classStats.map(cls => ({
+                name: cls.class_name,
+                percentage: Number(cls.attendance_percentage)
+            }))
         };
-      })
-    );
 
-    // Process class-wise attendance
-    const classAttendanceMap = todayAttendance.reduce((acc, record) => {
-      const className = record.student.class?.name;
-      if (!className) return acc;
+        // Update cache
+        statsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+        return result;
+    } catch (error) {
+        console.error('Failed to fetch attendance stats:', error);
+        throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to fetch attendance statistics',
+            cause: error
+        });
+    }
+}),
 
-      if (!acc[className]) {
-        acc[className] = { present: 0, total: 0 };
-      }
-      
-      if (record.status === AttendanceStatus.PRESENT) {
-        acc[className].present++;
-      }
-      acc[className].total++;
-      
-      return acc;
-    }, {} as Record<string, { present: number; total: number }>);
 
-    const lowAttendanceClasses = Object.entries(classAttendanceMap)
-      .map(([name, stats]) => ({
-        name,
-        percentage: (stats.present / stats.total) * 100
-      }))
-      .sort((a, b) => a.percentage - b.percentage)
-      .slice(0, 3);
-
-    return {
-      todayStats: {
-        present: todayAttendance.filter(a => a.status === AttendanceStatus.PRESENT).length,
-        absent: todayAttendance.filter(a => a.status === AttendanceStatus.ABSENT).length,
-        total: todayAttendance.length
-      },
-      weeklyPercentage: weeklyAttendance.length > 0
-        ? (weeklyAttendance.filter(a => a.status === AttendanceStatus.PRESENT).length / weeklyAttendance.length) * 100
-        : 0,
-      mostAbsentStudents: absentStudentDetails,
-      lowAttendanceClasses
-    };
-  }),
-
-  getDashboardData: protectedProcedure.query(async ({ ctx }) => {
-    const today = new Date();
-    const lastWeek = subDays(today, 7);
-
-    // Get attendance records for trend
-    const attendanceRecords = await ctx.prisma.attendance.findMany({
-      where: {
-        date: {
-          gte: lastWeek,
-          lte: today,
-        },
-      },
-      include: {
-        student: {
-          include: {
-            class: true
-          }
+getDashboardData: protectedProcedure.query(async ({ ctx }) => {
+    try {
+        const cacheKey = `dashboard_${ctx.session.user.id}`;
+        const cached = statsCache.get(cacheKey);
+        
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+            return cached.data;
         }
-      }
-    });
 
-    // Process daily attendance for trend
-    const dailyAttendanceMap = attendanceRecords.reduce((acc, record) => {
-      const dateStr = format(record.date, 'yyyy-MM-dd');
-      if (!acc[dateStr]) {
-        acc[dateStr] = { present: 0, total: 0 };
-      }
-      if (record.status === AttendanceStatus.PRESENT) {
-        acc[dateStr].present++;
-      }
-      acc[dateStr].total++;
-      return acc;
-    }, {} as Record<string, { present: number; total: number }>);
+        const today = new Date();
+        const lastWeek = subDays(today, 7);
 
-    // Create trend data array
-    const trendData = Array.from({ length: 8 }, (_, i) => {
-      const date = subDays(today, i);
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const stats = dailyAttendanceMap[dateStr] || { present: 0, total: 0 };
-      return {
-        date: dateStr,
-        percentage: stats.total > 0 ? (stats.present / stats.total) * 100 : 0
-      };
-    }).reverse();
+        // Optimized queries for dashboard data
+        const [trendData, classAttendance] = await Promise.all([
+            ctx.prisma.$queryRaw<any[]>`
+                SELECT 
+                    DATE(date) as date,
+                    COUNT(CASE WHEN status = 'PRESENT' THEN 1 END) * 100.0 / COUNT(*) as percentage
+                FROM Attendance
+                WHERE date >= ${lastWeek} AND date <= ${today}
+                GROUP BY DATE(date)
+                ORDER BY date ASC
+            `,
+            ctx.prisma.$queryRaw<any[]>`
+                SELECT 
+                    c.name as className,
+                    COUNT(CASE WHEN a.status = 'PRESENT' THEN 1 END) as present_count,
+                    COUNT(CASE WHEN a.status = 'ABSENT' THEN 1 END) as absent_count
+                FROM Attendance a
+                JOIN StudentProfile s ON a.studentId = s.id
+                JOIN Class c ON s.classId = c.id
+                WHERE a.date >= ${lastWeek} AND date <= ${today}
+                GROUP BY c.name
+            `
+        ]);
 
-    // Process class-wise attendance
-    const classAttendanceMap = attendanceRecords.reduce((acc, record) => {
-      const className = record.student.class?.name;
-      if (!className) return acc;
+        const result = {
+            attendanceTrend: trendData.map(record => ({
+                date: format(record.date, 'yyyy-MM-dd'),
+                percentage: Number(record.percentage) || 0
+            })),
+            classAttendance: classAttendance.map(record => ({
+                className: record.className,
+                present: Number(record.present_count),
+                absent: Number(record.absent_count),
+                percentage: (Number(record.present_count) * 100) / 
+                    (Number(record.present_count) + Number(record.absent_count)) || 0
+            }))
+        };
 
-      if (!acc[className]) {
-        acc[className] = { present: 0, absent: 0 };
-      }
+        // Update cache
+        statsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+        return result;
+    } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+        throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to fetch dashboard data',
+            cause: error
+        });
+    }
+})
 
-      if (record.status === AttendanceStatus.PRESENT) {
-        acc[className].present++;
-      } else if (record.status === AttendanceStatus.ABSENT) {
-        acc[className].absent++;
-      }
-
-      return acc;
-    }, {} as Record<string, { present: number; absent: number }>);
-
-    const classAttendanceData = Object.entries(classAttendanceMap).map(([className, stats]) => ({
-      className,
-      present: stats.present,
-      absent: stats.absent,
-      percentage: ((stats.present / (stats.present + stats.absent)) * 100) || 0
-    }));
-
-    return {
-      attendanceTrend: trendData,
-      classAttendance: classAttendanceData
-    };
-  }),
 });

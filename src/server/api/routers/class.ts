@@ -262,8 +262,58 @@ export const classRouter = createTRPCRouter({
 	list: protectedProcedure
 		.query(async ({ ctx }) => {
 			console.log('List Classes - Session:', ctx.session);
+			
+			// Check user roles and permissions
+			const userRoles = ctx.session?.user?.roles || [];
+			const hasAccess = userRoles.some(role => 
+				['ADMIN', 'SUPER_ADMIN', 'TEACHER'].includes(role)
+			);
+
+			if (!hasAccess) {
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message: 'You do not have permission to access class list'
+				});
+			}
+
 			try {
-				const classes = await ctx.prisma.class.findMany({
+				// For teachers, only return their assigned classes
+				if (userRoles.includes('TEACHER') && !userRoles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
+					return ctx.prisma.class.findMany({
+						where: {
+							teachers: {
+								some: {
+									teacher: {
+										userId: ctx.session.user.id
+									}
+								}
+							}
+						},
+						include: {
+							classGroup: true,
+							students: true,
+							teachers: {
+								include: {
+									teacher: true,
+								},
+							},
+							timetables: {
+								include: {
+									periods: {
+										include: {
+											subject: true,
+											classroom: true,
+										},
+									},
+								},
+							},
+							activities: true,
+						},
+					});
+				}
+
+				// For admin and super_admin, return all classes
+				return ctx.prisma.class.findMany({
 					include: {
 						classGroup: true,
 						students: true,
@@ -285,8 +335,6 @@ export const classRouter = createTRPCRouter({
 						activities: true,
 					},
 				});
-				console.log('Classes found:', classes.length);
-				return classes;
 			} catch (error) {
 				console.error('Error fetching classes:', error);
 				throw new TRPCError({
