@@ -16,8 +16,7 @@ export default async function DashboardPage({
   params: { role: string };
 }) {
   const session = await getServerAuthSession();
-  const roleParam = params.role;
-
+  const roleParam = await Promise.resolve(params.role);
   
   // Normalize the role to uppercase and replace hyphens with underscores
   const normalizedRole = roleParam.toUpperCase().replace(/-/g, '_');
@@ -31,6 +30,7 @@ export default async function DashboardPage({
   if (!userRoles.includes(roleParam.toLowerCase())) {
     redirect(`/dashboard/${session.user.roles[0]}`);
   }
+
 
   // If the role is coordinator, render the coordinator dashboard
   if (roleParam.toLowerCase() === 'coordinator') {
