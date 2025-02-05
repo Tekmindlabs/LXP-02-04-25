@@ -176,18 +176,16 @@ export default async function RoleLayout({
 	params: { role: string };
 }) {
 	const session = await getServerAuthSession();
-	const roleParam = await Promise.resolve(params.role);
 
 	if (!session) {
 		redirect("/auth/signin");
 	}
 
 	const userRoles = session.user.roles.map((r) => r.toLowerCase());
-	const role = roleParam.toLowerCase();
+	const currentRole = params?.role?.toLowerCase() ?? '';
 
-	if (!userRoles.includes(role)) {
-		redirect(`/dashboard/${userRoles[0].toLowerCase()}`);
-
+	if (!currentRole || !userRoles.includes(currentRole)) {
+		redirect(`/dashboard/${userRoles[0]?.toLowerCase() ?? ''}`);
 	}
 
 	const getNavItems = (role: string) => {
@@ -205,10 +203,11 @@ export default async function RoleLayout({
 		}
 	};
 
-	const navItems = getNavItems(role);
-	const isSuperAdmin = role === 'super-admin';
+	const navItems = getNavItems(currentRole);
+	const isSuperAdmin = currentRole === 'super-admin';
 
 	return (
+
 
 
 	<div className="flex min-h-screen">

@@ -33,10 +33,11 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers session={session} cookieHeader={cookieHeader}>
-          {children}
-          <ConsentBanner />
-          <Toaster />
-        </Providers>
+            {children}
+            <ConsentBanner />
+            <Toaster />
+            <div id="dialog-root" />
+          </Providers>
       </body>
     </html>
   );

@@ -1,9 +1,16 @@
 'use client';
 
+import { use } from 'react';
 import { StudentManagement } from "@/components/dashboard/roles/super-admin/student/StudentManagement";
 
-export default function StudentPage({ params }: { params: { role: string } }) {
-	const role = params.role;
+type PageProps = {
+	params: {
+		role: string;
+	};
+};
+
+export default function StudentPage({ params }: PageProps) {
+	const { role } = use(params as PageProps['params']);
 
 	return (
 		<div className="container mx-auto py-6">

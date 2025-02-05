@@ -5,6 +5,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
 import { format } from "date-fns";
+import { Student } from "@/types/user";
+
+interface Performance {
+	performance: {
+		activities: {
+			total: number;
+			completed: number;
+			averageGrade: number;
+		};
+		attendance: {
+			present: number;
+			absent: number;
+			late: number;
+			excused: number;
+			attendanceRate: number;
+		};
+		subjects: Array<{
+			subject: string;
+			activities: number;
+			averageGrade: number;
+		}>;
+	};
+}
 
 interface StudentDetailsProps {
 	studentId: string;
@@ -12,8 +35,8 @@ interface StudentDetailsProps {
 }
 
 export const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
-	const { data: student, isLoading } = api.student.getStudent.useQuery(studentId);
-	const { data: performance } = api.student.getStudentPerformance.useQuery(studentId);
+	const { data: student, isLoading } = api.student.getStudent.useQuery(studentId) as { data: Student | undefined, isLoading: boolean };
+	const { data: performance } = api.student.getStudentPerformance.useQuery(studentId) as { data: Performance | undefined };
 
 	if (isLoading || !student || !performance) {
 		return <div>Loading...</div>;
@@ -47,7 +70,7 @@ export const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
 								</div>
 								<div>
 									<p className="font-semibold">Date of Birth</p>
-									<p>{format(new Date(student.studentProfile.dateOfBirth), 'PPP')}</p>
+									<p>{student.studentProfile.dateOfBirth ? format(new Date(student.studentProfile.dateOfBirth), 'PPP') : 'Not set'}</p>
 								</div>
 								<div>
 									<p className="font-semibold">Class</p>
@@ -188,22 +211,59 @@ export const StudentDetails = ({ studentId, onBack }: StudentDetailsProps) => {
 						</CardHeader>
 						<CardContent>
 							<div className="space-y-4">
-								{student.studentProfile.activities.map((activity) => (
-									<div key={activity.id} className="p-4 border rounded">
-										<div className="flex justify-between items-center">
-											<div>
-												<h4 className="font-semibold">{activity.activity.title}</h4>
-												<p className="text-sm text-gray-500">
-													{activity.activity.type} - Due: {format(new Date(activity.activity.deadline!), 'PPP')}
-												</p>
+								<div className="grid grid-cols-3 gap-4">
+									<Card>
+										<CardHeader>
+											<CardTitle>Total Activities</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<p className="text-2xl font-bold">
+												{performance.performance.activities.total}
+											</p>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader>
+											<CardTitle>Completed</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<p className="text-2xl font-bold">
+												{performance.performance.activities.completed}
+											</p>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader>
+											<CardTitle>Average Grade</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<p className="text-2xl font-bold">
+												{performance.performance.activities.averageGrade.toFixed(1)}
+											</p>
+										</CardContent>
+									</Card>
+								</div>
+
+								<div className="mt-8">
+									<h3 className="text-lg font-semibold mb-4">Subject Performance</h3>
+									<div className="space-y-4">
+										{performance.performance.subjects.map((subject) => (
+											<div key={subject.subject} className="flex justify-between items-center p-4 border rounded">
+												<div>
+													<h4 className="font-semibold">{subject.subject}</h4>
+													<p className="text-sm text-gray-500">
+														{subject.activities} activities
+													</p>
+												</div>
+												<div className="text-right">
+													<p className="font-semibold">
+														Average: {subject.averageGrade.toFixed(1)}
+													</p>
+												</div>
 											</div>
-											<div className="text-right">
-												<p className="font-semibold">{activity.grade || '-'}</p>
-												<p className="text-sm">{activity.status}</p>
-											</div>
-										</div>
+										))}
 									</div>
-								))}
+								</div>
 							</div>
 						</CardContent>
 					</Card>

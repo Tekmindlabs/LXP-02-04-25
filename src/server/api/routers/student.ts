@@ -1,8 +1,23 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { Status, UserType } from "@prisma/client";
+import { Status, UserType, AttendanceStatus } from "@prisma/client";
 import { generatePassword } from "../../../utils/password";
 import * as XLSX from 'xlsx';
+
+interface StudentActivity {
+	status: string;
+	grade: number | null;
+	activity: {
+		classId: string;
+		type: string;
+		subjectId: string;
+	};
+}
+
+interface Subject {
+	id: string;
+	name: string;
+}
 
 interface ExcelRow {
 	Name: string;
@@ -189,7 +204,6 @@ export const studentRouter = createTRPCRouter({
 		}))
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// Check if email exists (if provided and different from current)
 				if (input.email) {
 					const existingStudent = await ctx.prisma.user.findFirst({
 						where: { 
@@ -231,8 +245,6 @@ export const studentRouter = createTRPCRouter({
 										user: true,
 									},
 								},
-								activities: true,
-								attendance: true,
 							},
 						},
 					},
@@ -250,6 +262,7 @@ export const studentRouter = createTRPCRouter({
 				throw new Error("Failed to update student");
 			}
 		}),
+
 
 
 
@@ -283,12 +296,8 @@ export const studentRouter = createTRPCRouter({
 									user: true,
 								},
 							},
-							activities: {
-								include: {
-									activity: true,
-								},
-							},
-							attendance: true,
+
+
 						},
 					},
 				},
@@ -343,8 +352,6 @@ export const studentRouter = createTRPCRouter({
 									user: true,
 								},
 							},
-							activities: true,
-							attendance: true,
 						},
 					},
 				},
@@ -353,7 +360,6 @@ export const studentRouter = createTRPCRouter({
 				},
 			});
 
-			// Transform the data to match the Student interface
 			return students.map(student => {
 				if (!student.studentProfile) {
 					throw new Error(`Student ${student.id} has no profile`);
@@ -380,12 +386,11 @@ export const studentRouter = createTRPCRouter({
 								name: student.studentProfile.parent.user.name || '',
 							},
 						} : null,
-						attendance: student.studentProfile.attendance || [],
-						activities: student.studentProfile.activities || [],
 					},
 				};
 			});
 		}),
+
 
 	assignToClass: protectedProcedure
 		.input(z.object({
@@ -434,12 +439,6 @@ export const studentRouter = createTRPCRouter({
 									user: true,
 								},
 							},
-							activities: {
-								include: {
-									activity: true,
-								},
-							},
-							attendance: true,
 						},
 					},
 				},
@@ -452,18 +451,13 @@ export const studentRouter = createTRPCRouter({
 			return student;
 		}),
 
+
 	getStudentPerformance: protectedProcedure
 		.input(z.string())
 		.query(async ({ ctx, input }) => {
 			const student = await ctx.prisma.studentProfile.findUnique({
 				where: { userId: input },
 				include: {
-					activities: {
-						include: {
-							activity: true,
-						},
-					},
-					attendance: true,
 					class: {
 						include: {
 							classGroup: {
@@ -480,10 +474,19 @@ export const studentRouter = createTRPCRouter({
 				throw new Error("Student not found");
 			}
 
-			// Calculate performance metrics
-			const activities = student.activities;
-			const attendance = student.attendance;
-			const subjects = student.class?.classGroup.subjects || [];
+			// Get activities and attendance separately
+			const activities = await ctx.prisma.activitySubmission.findMany({
+				where: { studentId: input },
+				include: {
+					activity: true,
+				},
+			});
+
+			const attendance = await ctx.prisma.attendance.findMany({
+				where: { studentId: student.id },
+			});
+
+			const subjects = student.class?.classGroup?.subjects || [];
 
 			// Activity performance
 			const activityMetrics = {
@@ -496,17 +499,17 @@ export const studentRouter = createTRPCRouter({
 			// Attendance metrics
 			const attendanceMetrics = {
 				total: attendance.length,
-				present: attendance.filter(a => a.status === 'PRESENT').length,
-				absent: attendance.filter(a => a.status === 'ABSENT').length,
-				late: attendance.filter(a => a.status === 'LATE').length,
-				excused: attendance.filter(a => a.status === 'EXCUSED').length,
-				attendanceRate: (attendance.filter(a => a.status === 'PRESENT').length / attendance.length) * 100 || 0,
+				present: attendance.filter(a => a.status === AttendanceStatus.PRESENT).length,
+				absent: attendance.filter(a => a.status === AttendanceStatus.ABSENT).length,
+				late: attendance.filter(a => a.status === AttendanceStatus.LATE).length,
+				excused: attendance.filter(a => a.status === AttendanceStatus.EXCUSED).length,
+				attendanceRate: (attendance.filter(a => a.status === AttendanceStatus.PRESENT).length / attendance.length) * 100 || 0,
 			};
 
 			// Subject-wise performance
 			const subjectPerformance = subjects.map(subject => {
 				const subjectActivities = activities.filter(a => 
-					a.activity.classId === student.classId && 
+					a.activity.subjectId === subject.id && 
 					a.activity.type === 'EXAM'
 				);
 

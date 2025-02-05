@@ -2,14 +2,19 @@ import { use } from 'react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
 import { ChevronRight } from "lucide-react";
 
+type PageParams = {
+	role: string;
+	id: string;
+};
+
 export default function TeacherProfileLayout({
 	children,
 	params,
 }: {
 	children: React.ReactNode;
-	params: Promise<{ role: string; id: string }>;
+	params: Promise<PageParams>;
 }) {
-	const { role: roleParam } = use(params);
+	const { role: roleParam } = use(params as Promise<PageParams>);
 
 
 

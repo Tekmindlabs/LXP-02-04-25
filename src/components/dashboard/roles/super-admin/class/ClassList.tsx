@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Class } from "@/types/class"; // Import the shared interface
-import { ClassDetailView } from "./ClassDetailView";
+import { Class } from "@/types/class";
+import { useRouter } from "next/navigation";
 
 interface ClassListProps {
     classes: Class[];
@@ -14,11 +13,14 @@ interface ClassListProps {
 }
 
 export const ClassList = ({ classes, onSelect }: ClassListProps) => {
-    const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+    const router = useRouter();
+
+    const handleView = (classId: string) => {
+        router.push(`/dashboard/super-admin/class/${classId}`);
+    };
 
     return (
-        <>
-            <ScrollArea className="rounded-md border h-[600px]">
+        <ScrollArea className="rounded-md border h-[600px]">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -58,7 +60,7 @@ export const ClassList = ({ classes, onSelect }: ClassListProps) => {
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant={cls.status === "ACTIVE" ? "success" : "secondary"}>
+                                    <Badge variant={cls.status === "ACTIVE" ? "default" : "secondary"}>
                                         {cls.status}
                                     </Badge>
                                 </TableCell>
@@ -74,7 +76,7 @@ export const ClassList = ({ classes, onSelect }: ClassListProps) => {
                                         <Button
                                             variant="secondary"
                                             size="sm"
-                                            onClick={() => setSelectedClassId(cls.id)}
+                                            onClick={() => handleView(cls.id)}
                                         >
                                             View
                                         </Button>
@@ -86,13 +88,5 @@ export const ClassList = ({ classes, onSelect }: ClassListProps) => {
                 </Table>
             </ScrollArea>
 
-            {selectedClassId && (
-                <ClassDetailView
-                    isOpen={!!selectedClassId}
-                    onClose={() => setSelectedClassId(null)}
-                    classId={selectedClassId}
-                />
-            )}
-        </>
     );
 };

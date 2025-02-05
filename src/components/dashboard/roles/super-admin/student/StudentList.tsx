@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Status } from "@prisma/client";
 import { Student } from "@/types/user";
 import { useRouter, useParams } from "next/navigation";
+import { api } from "@/trpc/react";
 
 interface StudentListProps {
 	students: Student[];
@@ -17,18 +18,6 @@ export const StudentList = ({ students, onSelect }: StudentListProps) => {
 	const params = useParams();
 	const role = params.role as string;
 
-	const calculateAttendanceRate = (attendance: { status: string }[]) => {
-		if (attendance.length === 0) return 0;
-		const present = attendance.filter(a => a.status === 'PRESENT').length;
-		return ((present / attendance.length) * 100).toFixed(1);
-	};
-
-	const calculateAverageGrade = (activities: { grade?: number }[]) => {
-		const grades = activities.filter(a => a.grade !== undefined).map(a => a.grade!);
-		if (grades.length === 0) return '-';
-		return (grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(1);
-	};
-
 	return (
 		<div className="rounded-md border">
 			<Table>
@@ -39,8 +28,6 @@ export const StudentList = ({ students, onSelect }: StudentListProps) => {
 						<TableHead>Class</TableHead>
 						<TableHead>Program</TableHead>
 						<TableHead>Guardian</TableHead>
-						<TableHead>Attendance</TableHead>
-						<TableHead>Avg. Grade</TableHead>
 						<TableHead>Status</TableHead>
 						<TableHead>Actions</TableHead>
 					</TableRow>
@@ -61,12 +48,6 @@ export const StudentList = ({ students, onSelect }: StudentListProps) => {
 							</TableCell>
 							<TableCell>
 								{student.studentProfile.parent?.user.name || '-'}
-							</TableCell>
-							<TableCell>
-								{`${calculateAttendanceRate(student.studentProfile.attendance)}%`}
-							</TableCell>
-							<TableCell>
-								{calculateAverageGrade(student.studentProfile.activities)}
 							</TableCell>
 							<TableCell>
 								<Badge variant={student.status === "ACTIVE" ? "default" : "secondary"}>
@@ -98,3 +79,4 @@ export const StudentList = ({ students, onSelect }: StudentListProps) => {
 		</div>
 	);
 };
+

@@ -7,38 +7,154 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Status } from "@prisma/client";
+import { Status, UserType } from "@prisma/client";
 import { api } from "@/trpc/react";
+import { type RouterOutputs } from "@/utils/api";
+import { type CalendarDay, type Modifiers } from "react-day-picker";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { LuUsers, LuBookOpen, LuGraduationCap, LuUserCheck } from "react-icons/lu";
+import { Calendar } from "@/components/ui/calendar";
+import { format, addDays, isSameDay } from "date-fns";
+import { CalendarIcon } from "@radix-ui/react-icons";
+
+type ClassDetails = {
+	status: Status;
+	name: string;
+	id: string;
+	createdAt: Date;
+	updatedAt: Date;
+	classGroupId: string;
+	capacity: number;
+	students: Array<{
+		id: string;
+		user: {
+			name: string | null;
+			email: string | null;
+		};
+	}>;
+	teachers: Array<{
+		teacher: {
+			id: string;
+			user: {
+				name: string | null;
+			};
+		};
+	}>;
+	classGroup: {
+		name: string;
+		program: {
+			name: string;
+		};
+		calendar?: {
+			events: Array<{
+				id: string;
+				title: string;
+				description: string | null;
+				startDate: Date;
+				endDate: Date;
+				type: string;
+			}>;
+		};
+	};
+	timetables: Array<{
+		periods: Array<{
+			startTime: string;
+			endTime: string;
+			dayOfWeek: string;
+		}>;
+	}>;
+};
+
+type StudentProfile = {
+	status: Status;
+	email: string | null;
+	name: string | null;
+	id: string;
+	phoneNumber: string | null;
+	emailVerified: Date | null;
+	image: string | null;
+	userType: UserType | null;
+};
+
+
+
+interface Period {
+	startTime: string;
+	endTime: string;
+	dayOfWeek: string;
+}
 
 interface ClassDetailViewProps {
-
 	isOpen: boolean;
 	onClose: () => void;
 	classId: string;
 }
 
-export const ClassDetailView = ({ isOpen, onClose, classId }: ClassDetailViewProps) => {
-	const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
-	const { data: classDetails } = api.class.getClassDetails.useQuery(
+
+export const ClassDetailsView = ({ isOpen, onClose, classId }: ClassDetailViewProps) => {
+	const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+	const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date>(new Date());
+
+	const { data: classDetails, error: classError, isLoading } = api.class.getClassDetails.useQuery(
 		{ id: classId },
-		{ enabled: isOpen }
-	);
+		{ 
+			enabled: isOpen && !!classId,
+			retry: false
+		}
+	) as { 
+		data: ClassDetails | undefined;
+		error: unknown;
+		isLoading: boolean;
+	};
 
 	const { data: studentProfile } = api.student.getStudentProfile.useQuery(
 		{ id: selectedStudentId! },
 		{ enabled: !!selectedStudentId }
-	);
+	) as { data: StudentProfile | undefined };
+
+	if (isLoading) {
+		return (
+			<Dialog open={isOpen} onOpenChange={onClose}>
+				<DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>Loading class details...</DialogTitle>
+					</DialogHeader>
+					<div className="flex items-center justify-center p-8">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+					</div>
+				</DialogContent>
+			</Dialog>
+		);
+	}
+
+	if (classError) {
+		return (
+			<Dialog open={isOpen} onOpenChange={onClose}>
+				<DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle className="text-destructive">Error Loading Class Details</DialogTitle>
+					</DialogHeader>
+					<div className="p-4 text-center">
+						<p className="text-destructive">Failed to load class details. Please try again later.</p>
+						<Button 
+							variant="outline" 
+							onClick={onClose}
+							className="mt-4"
+						>
+							Close
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
+		);
+	}
 
 	if (!classDetails) return null;
 
-	const performanceData = [
-		{ name: 'Assignments', completed: 85, pending: 15 },
-		{ name: 'Attendance', present: 90, absent: 10 },
-		{ name: 'Quizzes', passed: 75, failed: 25 },
-	];
+
+
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
@@ -95,9 +211,10 @@ export const ClassDetailView = ({ isOpen, onClose, classId }: ClassDetailViewPro
 					<TabsList className="grid w-full grid-cols-4">
 						<TabsTrigger value="overview">Overview</TabsTrigger>
 						<TabsTrigger value="students">Students</TabsTrigger>
-						<TabsTrigger value="performance">Performance</TabsTrigger>
 						<TabsTrigger value="teachers">Teachers</TabsTrigger>
+						<TabsTrigger value="calendar">Calendar</TabsTrigger>
 					</TabsList>
+
 
 					<TabsContent value="overview">
 						<Card>
@@ -144,7 +261,7 @@ export const ClassDetailView = ({ isOpen, onClose, classId }: ClassDetailViewPro
 										</TableRow>
 									</TableHeader>
 									<TableBody>
-										{classDetails.students.map((student) => (
+										{classDetails.students.map((student: { id: string; user: { name: string | null; email: string | null } }) => (
 											<TableRow key={student.id}>
 												<TableCell>{student.user.name}</TableCell>
 												<TableCell>{student.user.email}</TableCell>
@@ -165,31 +282,8 @@ export const ClassDetailView = ({ isOpen, onClose, classId }: ClassDetailViewPro
 						</Card>
 					</TabsContent>
 
-					<TabsContent value="performance">
-						<Card>
-							<CardHeader>
-								<CardTitle>Class Performance Analytics</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="h-[300px] mt-4">
-									<ResponsiveContainer width="100%" height="100%">
-										<BarChart data={performanceData}>
-											<CartesianGrid strokeDasharray="3 3" />
-											<XAxis dataKey="name" />
-											<YAxis />
-											<Tooltip />
-											<Bar dataKey="completed" fill="#22c55e" stackId="a" name="Completed" />
-											<Bar dataKey="pending" fill="#f87171" stackId="a" name="Pending" />
-											<Bar dataKey="present" fill="#22c55e" stackId="b" name="Present" />
-											<Bar dataKey="absent" fill="#f87171" stackId="b" name="Absent" />
-											<Bar dataKey="passed" fill="#22c55e" stackId="c" name="Passed" />
-											<Bar dataKey="failed" fill="#f87171" stackId="c" name="Failed" />
-										</BarChart>
-									</ResponsiveContainer>
-								</div>
-							</CardContent>
-						</Card>
-					</TabsContent>
+
+
 
 					<TabsContent value="teachers">
 						<Card>
@@ -207,7 +301,7 @@ export const ClassDetailView = ({ isOpen, onClose, classId }: ClassDetailViewPro
 										</TableRow>
 									</TableHeader>
 									<TableBody>
-										{classDetails.teachers.map((teacher) => (
+										{classDetails.teachers.map((teacher: { teacher: { id: string; user: { name: string | null } } }) => (
 											<TableRow key={teacher.teacher.id}>
 												<TableCell>{teacher.teacher.user.name}</TableCell>
 												<TableCell>Subject Teacher</TableCell>
@@ -223,47 +317,113 @@ export const ClassDetailView = ({ isOpen, onClose, classId }: ClassDetailViewPro
 							</CardContent>
 						</Card>
 					</TabsContent>
-				</Tabs>
 
-				{selectedStudentId && (
-					<Dialog open={!!selectedStudentId} onOpenChange={() => setSelectedStudentId(null)}>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>Student Profile</DialogTitle>
-							</DialogHeader>
-							{studentProfile?.studentProfile && (
-								<div className="space-y-4">
+					<TabsContent value="calendar">
+						<Card>
+							<CardHeader>
+								<CardTitle>Class Calendar</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div>
-										<h3 className="text-lg font-medium">{studentProfile.name}</h3>
-										<p className="text-sm text-gray-500">{studentProfile.email}</p>
+										<Calendar
+											mode="single"
+											selected={selectedCalendarDate}
+											onSelect={(date) => date && setSelectedCalendarDate(date)}
+											className="rounded-md border"
+											components={{
+												Day: ({ day, ...props }: { day: CalendarDay; modifiers: Modifiers } & React.HTMLAttributes<HTMLDivElement>) => {
+													const events = classDetails.classGroup.calendar?.events?.filter(
+														(event) => isSameDay(new Date(event.startDate), day.date)
+													) ?? [];
+													return (
+														<div
+															{...props}
+															className={`relative ${props.className || ''} ${
+																events.length > 0 ? "bg-primary/10" : ""
+															}`}
+														>
+															{day.date.getDate()}
+															{events.length > 0 && (
+																<div className="absolute bottom-0 right-0">
+																	<CalendarIcon className="h-3 w-3 text-primary" />
+																</div>
+															)}
+														</div>
+													);
+												},
+											}}
+										/>
 									</div>
 									<div>
-										<h4 className="font-medium">Activities</h4>
-										<div className="mt-2">
-											{studentProfile.studentProfile.activities.map((activity, index: number) => (
-												<div key={index} className="flex justify-between py-1">
-													<span>{activity.status}</span>
-													{activity.grade && <span>Grade: {activity.grade}</span>}
-												</div>
-											))}
-										</div>
-									</div>
-									<div>
-										<h4 className="font-medium">Attendance</h4>
-										<div className="mt-2">
-											{studentProfile.studentProfile.attendance.map((record, index: number) => (
-												<div key={index} className="flex justify-between py-1">
-													<span>{new Date(record.date).toLocaleDateString()}</span>
-													<Badge variant="outline">{record.status}</Badge>
-												</div>
-											))}
+										<h3 className="font-medium mb-4">Events for {format(selectedCalendarDate, 'PPPP')}</h3>
+										<div className="space-y-4">
+											{classDetails.classGroup.calendar?.events
+												?.filter((event) => 
+													isSameDay(new Date(event.startDate), selectedCalendarDate)
+												)
+												.map((event) => (
+													<div key={event.id} className="p-4 border rounded-lg">
+														<div className="flex items-center justify-between">
+															<h4 className="font-medium">{event.title}</h4>
+															<Badge>{event.type}</Badge>
+														</div>
+														{event.description && (
+															<p className="text-sm text-muted-foreground mt-2">
+																{event.description}
+															</p>
+														)}
+														<div className="text-sm text-muted-foreground mt-2">
+															<time>
+																{format(new Date(event.startDate), 'p')} - {format(new Date(event.endDate), 'p')}
+															</time>
+														</div>
+													</div>
+												))}
+											{(!classDetails.classGroup.calendar?.events?.some((event) => 
+												isSameDay(new Date(event.startDate), selectedCalendarDate)
+											)) && (
+												<p className="text-muted-foreground text-center py-4">
+													No events scheduled for this day
+												</p>
+											)}
 										</div>
 									</div>
 								</div>
+							</CardContent>
+						</Card>
+					</TabsContent>
+
+							  </Tabs>
+
+							{selectedStudentId && (
+								<Dialog open={!!selectedStudentId} onOpenChange={() => setSelectedStudentId(null)}>
+									<DialogContent>
+										<DialogHeader>
+											<DialogTitle>Student Information</DialogTitle>
+										</DialogHeader>
+										{studentProfile && (
+											<div className="space-y-4">
+												<div>
+													<h3 className="text-lg font-medium">{studentProfile.name}</h3>
+													<p className="text-sm text-gray-500">{studentProfile.email}</p>
+												</div>
+												<div className="flex justify-end">
+													<Button
+														variant="default"
+														onClick={() => {
+															window.location.href = `/dashboard/super-admin/student/${studentProfile.id}`;
+														}}
+													>
+														View Full Profile
+													</Button>
+												</div>
+											</div>
+										)}
+									</DialogContent>
+								</Dialog>
 							)}
-						</DialogContent>
-					</Dialog>
-				)}
+
 			</DialogContent>
 		</Dialog>
 	);

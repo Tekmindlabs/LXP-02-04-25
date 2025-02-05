@@ -73,7 +73,7 @@ export function ActivityModal({ open, onOpenChange, onSave }: ActivityModalProps
 							))}
 						</TabsList>
 						{Object.entries(activityGroups).map(([group, types]) => (
-							<TabsContent key={group} value={group} className="mt-4">
+							<TabsContent key={group} value={group}>
 								<div className="grid grid-cols-2 gap-4">
 									{types.map(type => (
 										<Card key={type} className="p-4 cursor-pointer hover:bg-accent" onClick={() => handleTypeSelect(type)}>
@@ -117,4 +117,5 @@ export function ActivityModal({ open, onOpenChange, onSave }: ActivityModalProps
 			</DialogContent>
 		</Dialog>
 	);
-}
+
+	}

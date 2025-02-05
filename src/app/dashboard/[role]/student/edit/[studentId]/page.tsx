@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,15 +23,23 @@ const formSchema = z.object({
 
 
 
+type PageProps = {
+	params: {
+		role: string;
+		studentId: string;
+	};
+};
+
 type FormData = z.infer<typeof formSchema>;
 
-export default function EditStudentPage({ params }: { params: { role: string; studentId: string } }) {
+export default function EditStudentPage({ params }: PageProps) {
+	const { role, studentId } = use(params as PageProps['params']);
 	const router = useRouter();
 	const { toast } = useToast();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	
 	const { data: classes = [] } = api.class.list.useQuery();
-	const { data: student, isLoading } = api.student.getStudent.useQuery(params.studentId);
+	const { data: student, isLoading } = api.student.getStudent.useQuery(studentId);
 	
 	const updateStudentMutation = api.student.updateStudent.useMutation({
 		onSuccess: () => {
@@ -40,7 +48,7 @@ export default function EditStudentPage({ params }: { params: { role: string; st
 				title: 'Student updated successfully',
 				description: 'Student has been updated',
 			});
-			router.push(`/dashboard/${params.role}/student`);
+			router.push(`/dashboard/${role}/student`);
 		},
 		onError: (error) => {
 			setIsSubmitting(false);
@@ -81,7 +89,7 @@ export default function EditStudentPage({ params }: { params: { role: string; st
 		try {
 			setIsSubmitting(true);
 			await updateStudentMutation.mutateAsync({
-				id: params.studentId,
+				id: studentId,
 				name: data.name,
 				email: data.email || null,
 				dateOfBirth: data.dateOfBirth,
@@ -129,7 +137,7 @@ export default function EditStudentPage({ params }: { params: { role: string; st
 		const parentPassword = Math.random().toString(36).slice(-8);
 		
 		createCredentialsMutation.mutate({
-			studentId: params.studentId,
+			studentId: studentId,
 			studentPassword,
 			parentPassword: student.studentProfile?.parent ? parentPassword : undefined
 		});

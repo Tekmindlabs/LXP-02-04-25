@@ -35,7 +35,7 @@ const DialogContent = React.forwardRef<
     size?: 'default' | 'wide'
   }
 >(({ className, children, size = 'default', ...props }, ref) => (
-  <DialogPortal>
+  <DialogPortal container={typeof window !== 'undefined' ? document.getElementById('dialog-root') : undefined}>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}

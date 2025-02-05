@@ -208,12 +208,17 @@ export const classRouter = createTRPCRouter({
 			id: z.string(),
 		}))
 		.query(async ({ ctx, input }) => {
-			return ctx.prisma.class.findUnique({
+			const classDetails = await ctx.prisma.class.findUnique({
 				where: { id: input.id },
 				include: {
 					classGroup: {
 						include: {
 							program: true,
+							calendar: {
+								include: {
+									events: true
+								}
+							}
 						},
 					},
 					teachers: {
@@ -228,18 +233,6 @@ export const classRouter = createTRPCRouter({
 					students: {
 						include: {
 							user: true,
-							activities: {
-								select: {
-									status: true,
-									grade: true,
-								},
-							},
-							attendance: {
-								select: {
-									status: true,
-									date: true,
-								},
-							},
 						},
 					},
 					activities: {
@@ -254,7 +247,17 @@ export const classRouter = createTRPCRouter({
 					},
 				},
 			});
+
+			if (!classDetails) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Class not found',
+				});
+			}
+
+			return classDetails;
 		}),
+
 
 	list: protectedProcedure
 		.query(async ({ ctx }) => {

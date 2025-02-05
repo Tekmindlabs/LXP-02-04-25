@@ -1,7 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+
+type PageProps = {
+	params: {
+		role: string;
+	};
+};
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,9 +30,9 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function CreateStudentPage({ params }: { params: { role: string } }) {
+export default function CreateStudentPage({ params }: PageProps) {
 	const router = useRouter();
-	const role = params.role;
+	const { role } = use<PageProps['params']>(params);
 	const { toast } = useToast();
 
 	const [password, setPassword] = useState('');
