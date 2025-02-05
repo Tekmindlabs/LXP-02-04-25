@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ActivityConfiguration, ActivityType, WordSearchConfig } from "@/types/class-activity";
+import { ActivityConfiguration, ActivityType, WordSearchConfig, VideoConfig, ReadingConfig } from "@/types/class-activity";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -29,6 +29,12 @@ const activityFormSchema = z.object({
 	type: z.custom<ActivityType>(),
 	configuration: z.discriminatedUnion('type', [
 		z.object({
+			type: z.literal('READING'),
+			content: z.string().min(1, "Content is required"),
+			examples: z.array(z.string()),
+			showExamples: z.boolean()
+		}).merge(baseConfigSchema),
+		z.object({
 			type: z.literal('GAME_WORD_SEARCH'),
 			words: z.array(z.string()).min(1, "At least one word is required"),
 			gridSize: z.object({
@@ -47,6 +53,12 @@ const activityFormSchema = z.object({
 			timeLimit: z.number().min(0).optional(),
 			showWordList: z.boolean(),
 			fillRandomLetters: z.boolean()
+		}).merge(baseConfigSchema),
+		z.object({
+			type: z.literal('VIDEO_YOUTUBE'),
+			videoUrl: z.string().url("Please enter a valid YouTube URL"),
+			autoplay: z.boolean(),
+			showControls: z.boolean()
 		}).merge(baseConfigSchema),
 		z.object({
 			type: z.literal('DEFAULT'),
@@ -181,6 +193,8 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 										</FormControl>
 										<SelectContent>
 											<SelectItem value="GAME_WORD_SEARCH">Word Search</SelectItem>
+											<SelectItem value="VIDEO_YOUTUBE">YouTube Video</SelectItem>
+											<SelectItem value="READING">Reading</SelectItem>
 											<SelectItem value="DEFAULT">Default</SelectItem>
 										</SelectContent>
 									</Select>
@@ -188,6 +202,48 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 								</FormItem>
 							)}
 						/>
+
+						{form.watch('type') === 'VIDEO_YOUTUBE' && (
+							<div className="space-y-4">
+								<FormField
+									control={form.control}
+									name="configuration.videoUrl"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>YouTube Video URL</FormLabel>
+											<FormControl>
+												<Input {...field} placeholder="https://www.youtube.com/watch?v=..." />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="configuration.autoplay"
+									render={({ field }) => (
+										<FormItem className="flex items-center justify-between">
+											<FormLabel>Autoplay Video</FormLabel>
+											<FormControl>
+												<Switch checked={field.value} onCheckedChange={field.onChange} />
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="configuration.showControls"
+									render={({ field }) => (
+										<FormItem className="flex items-center justify-between">
+											<FormLabel>Show Video Controls</FormLabel>
+											<FormControl>
+												<Switch checked={field.value} onCheckedChange={field.onChange} />
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+						)}
 
 						{form.watch('type') === 'GAME_WORD_SEARCH' && (
 							<div className="space-y-4">
@@ -330,6 +386,94 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 										)}
 									/>
 								</div>
+							</div>
+						)}
+
+						{form.watch('type') === 'READING' && (
+							<div className="space-y-4">
+								<FormField
+									control={form.control}
+									name="configuration.content"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Reading Content</FormLabel>
+											<FormControl>
+												<Textarea 
+													{...field}
+													className="min-h-[200px]"
+													placeholder="Enter the reading content here..."
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="configuration.showExamples"
+									render={({ field }) => (
+										<FormItem className="flex items-center justify-between">
+											<FormLabel>Show Examples</FormLabel>
+											<FormControl>
+												<Switch 
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								{form.watch('configuration.showExamples') && (
+									<FormField
+										control={form.control}
+										name="configuration.examples"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Examples</FormLabel>
+												<div className="space-y-2">
+													{field.value?.map((_, index) => (
+														<div key={index} className="flex gap-2">
+															<FormControl>
+																<Textarea
+																	value={field.value[index]}
+																	onChange={(e) => {
+																		const newExamples = [...field.value];
+																		newExamples[index] = e.target.value;
+																		field.onChange(newExamples);
+																	}}
+																	placeholder={`Example ${index + 1}`}
+																/>
+															</FormControl>
+															<Button
+																type="button"
+																variant="destructive"
+																size="sm"
+																onClick={() => {
+																	const newExamples = field.value.filter((_, i) => i !== index);
+																	field.onChange(newExamples);
+																}}
+															>
+																Remove
+															</Button>
+														</div>
+													))}
+													<Button
+														type="button"
+														variant="outline"
+														onClick={() => {
+															field.onChange([...(field.value || []), '']);
+														}}
+													>
+														Add Example
+													</Button>
+												</div>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
 							</div>
 						)}
 

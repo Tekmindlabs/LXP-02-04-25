@@ -16,6 +16,7 @@ export const useWordSearch = ({ config, onSubmit }: UseWordSearchProps) => {
 	const [timer, setTimer] = useState<number>(config.timeLimit || 0);
 	const [gameStatus, setGameStatus] = useState<WordSearchGameState>('ready');
 	const [score, setScore] = useState<number>(0);
+	const [currentCell, setCurrentCell] = useState<[number, number]>([0, 0]);
 
 	const gridRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -110,6 +111,109 @@ export const useWordSearch = ({ config, onSubmit }: UseWordSearchProps) => {
 		return () => clearInterval(interval);
 	}, [gameStatus, timer, handleGameComplete]);
 
+	const handleCellTouchStart = useCallback((row: number, col: number, x: number, y: number) => {
+		if (gameStatus !== 'playing') return;
+		const pos: Position = { row, col, x, y };
+		setStartPos(pos);
+		setSelection({ start: pos, end: pos, word: grid[row][col] });
+	}, [gameStatus, grid]);
+
+	const handleCellTouchMove = useCallback((row: number, col: number, x: number, y: number, touch: Touch) => {
+		if (!startPos || gameStatus !== 'playing') return;
+		
+		const gridRect = gridRef.current?.getBoundingClientRect();
+		if (!gridRect) return;
+
+		// Calculate the cell position from touch coordinates
+		const touchX = touch.clientX - gridRect.left;
+		const touchY = touch.clientY - gridRect.top;
+		const cellCol = Math.floor(touchX / elementSize.current);
+		const cellRow = Math.floor(touchY / elementSize.current);
+
+		if (cellRow >= 0 && cellRow < grid.length && cellCol >= 0 && cellCol < grid[0].length) {
+			const pos: Position = { row: cellRow, col: cellCol, x, y };
+			const word = getSelectedWord(startPos, pos, grid);
+			if (word) {
+				setSelection({ start: startPos, end: pos, word });
+				drawSelection(startPos, pos);
+			}
+		}
+	}, [startPos, gameStatus, grid, drawSelection]);
+
+	const handleCellTouchEnd = useCallback((row: number, col: number) => {
+		handleCellMouseUp(row, col);
+	}, [handleCellMouseUp]);
+
+	const handleKeyNavigation = useCallback((e: React.KeyboardEvent) => {
+		if (gameStatus !== 'playing') return;
+
+		const [currentRow, currentCol] = currentCell;
+		let newRow = currentRow;
+		let newCol = currentCol;
+
+		switch (e.key) {
+			case 'ArrowUp':
+				newRow = Math.max(0, currentRow - 1);
+				break;
+			case 'ArrowDown':
+				newRow = Math.min(grid.length - 1, currentRow + 1);
+				break;
+			case 'ArrowLeft':
+				newCol = Math.max(0, currentCol - 1);
+				break;
+			case 'ArrowRight':
+				newCol = Math.min(grid[0].length - 1, currentCol + 1);
+				break;
+			case 'Enter':
+			case ' ':
+				if (!startPos) {
+					const pos: Position = { 
+						row: currentRow, 
+						col: currentCol, 
+						x: currentCol * elementSize.current, 
+						y: currentRow * elementSize.current 
+					};
+					setStartPos(pos);
+					setSelection({ start: pos, end: pos, word: grid[currentRow][currentCol] });
+				} else {
+					const endPos: Position = { 
+						row: currentRow, 
+						col: currentCol, 
+						x: currentCol * elementSize.current, 
+						y: currentRow * elementSize.current 
+					};
+					const selectedWord = getSelectedWord(startPos, endPos, grid);
+					if (selectedWord && config.words.includes(selectedWord)) {
+						setFoundWords(prev => {
+							if (!prev.includes(selectedWord)) {
+								const newScore = calculateScore(selectedWord, timer, config.timeLimit || 0);
+								setScore(s => s + newScore);
+								if (prev.length + 1 === config.words.length) {
+									handleGameComplete();
+								}
+								return [...prev, selectedWord];
+							}
+							return prev;
+						});
+					}
+					setStartPos(null);
+					setSelection(null);
+					const ctx = canvasRef.current?.getContext('2d');
+					ctx?.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+				}
+				break;
+			case 'Escape':
+				setStartPos(null);
+				setSelection(null);
+				const ctx = canvasRef.current?.getContext('2d');
+				ctx?.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+				break;
+		}
+
+		setCurrentCell([newRow, newCol]);
+		e.preventDefault();
+	}, [currentCell, gameStatus, grid, startPos, config.words, timer, config.timeLimit, handleGameComplete]);
+
 	return {
 		grid,
 		gridRef,
@@ -123,6 +227,10 @@ export const useWordSearch = ({ config, onSubmit }: UseWordSearchProps) => {
 		handleGameComplete,
 		handleCellMouseDown,
 		handleCellMouseMove,
-		handleCellMouseUp
+		handleCellMouseUp,
+		handleCellTouchStart,
+		handleCellTouchMove,
+		handleCellTouchEnd,
+		handleKeyNavigation
 	};
 };

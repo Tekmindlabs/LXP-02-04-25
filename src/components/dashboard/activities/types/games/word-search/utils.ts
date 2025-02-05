@@ -17,10 +17,16 @@ export const getDirections = (orientations: WordSearchConfig['orientations']): [
 	const directions: [number, number][] = [];
 	if (orientations.horizontal) directions.push([0, 1]);
 	if (orientations.vertical) directions.push([1, 0]);
-	if (orientations.diagonal) directions.push([1, 1]);
+	if (orientations.diagonal) {
+		directions.push([1, 1]);   // diagonal down-right
+		directions.push([1, -1]);  // diagonal down-left
+	}
 	if (orientations.reverseHorizontal) directions.push([0, -1]);
 	if (orientations.reverseVertical) directions.push([-1, 0]);
-	if (orientations.reverseDiagonal) directions.push([-1, -1]);
+	if (orientations.reverseDiagonal) {
+		directions.push([-1, -1]); // diagonal up-left
+		directions.push([-1, 1]);  // diagonal up-right
+	}
 	return directions;
 };
 
@@ -55,49 +61,72 @@ const placeWordAtPosition = (grid: string[][], word: string, x: number, y: numbe
 	return true;
 };
 
+const placeWord = (grid: string[][], word: string, config: WordSearchConfig): boolean => {
+	const directions = getDirections(config.orientations);
+	const rows = grid.length;
+	const cols = grid[0].length;
+	const attempts = config.difficulty === 'hard' ? 150 : 100;
+	
+	// Sort positions by potential overlap for better placement
+	const positions = [];
+	for (let x = 0; x < rows; x++) {
+		for (let y = 0; y < cols; y++) {
+			for (const [dx, dy] of directions) {
+				if (canPlaceWordAtPosition(grid, word, x, y, dx, dy)) {
+					const overlap = calculateOverlap(grid, word, x, y, dx, dy);
+					positions.push({ x, y, dx, dy, overlap });
+				}
+			}
+		}
+	}
+
+	// Sort by overlap (higher overlap first for hard difficulty)
+	positions.sort((a, b) => config.difficulty === 'hard' ? 
+		b.overlap - a.overlap : 
+		a.overlap - b.overlap
+	);
+
+	// Try placing the word at the best position
+	for (const pos of positions.slice(0, attempts)) {
+		if (placeWordAtPosition(grid, word, pos.x, pos.y, pos.dx, pos.dy)) {
+			return true;
+		}
+	}
+
+	return false;
+};
+
 export const generateGrid = (config: WordSearchConfig): string[][] => {
 	const { rows, cols } = config.gridSize;
 	const grid = Array(rows).fill('').map(() => Array(cols).fill(''));
-	const directions = getDirections(config.orientations);
 	
-	const placeWord = (word: string): boolean => {
-		let placed = false;
-		let attempts = 0;
-		let bestPlacement = { x: 0, y: 0, dx: 0, dy: 0, overlap: -1 };
-		const maxAttempts = 100;
-
-		while (!placed && attempts < maxAttempts) {
-			const direction = directions[Math.floor(Math.random() * directions.length)];
-			const [dx, dy] = direction;
-			const startX = Math.floor(Math.random() * rows);
-			const startY = Math.floor(Math.random() * cols);
-			
-			const overlap = calculateOverlap(grid, word, startX, startY, dx, dy);
-			if (overlap >= 0 && (config.difficulty === 'hard' ? overlap > 0 : true)) {
-				if (overlap > bestPlacement.overlap) {
-					bestPlacement = { x: startX, y: startY, dx, dy, overlap };
-				}
-				if (overlap > 0 || attempts > maxAttempts / 2) {
-					placeWordAtPosition(grid, word.toUpperCase(), bestPlacement.x, bestPlacement.y, bestPlacement.dx, bestPlacement.dy);
-					placed = true;
-				}
-			}
-			attempts++;
-		}
-		return placed;
-	};
-
-	config.words.sort((a, b) => b.length - a.length).forEach(word => {
-		if (!placeWord(word)) {
-			console.warn(`Could not place word: ${word}`);
-		}
+	// Sort words by length and complexity
+	const words = [...config.words].sort((a, b) => {
+		const lengthDiff = b.length - a.length;
+		if (lengthDiff !== 0) return lengthDiff;
+		// Secondary sort by character complexity
+		return b.split('').filter(c => /[JQXZ]/i.test(c)).length - 
+					 a.split('').filter(c => /[JQXZ]/i.test(c)).length;
 	});
 
+	// Place words with improved algorithm
+	for (const word of words) {
+		if (!placeWord(grid, word.toUpperCase(), config)) {
+			console.warn(`Could not place word: ${word}`);
+		}
+	}
+
+	// Fill empty spaces with weighted random letters
 	if (config.fillRandomLetters) {
+		const commonLetters = 'AEIOURSTN';
+		const uncommonLetters = 'BCDFGHJKLMPQVWXYZ';
+		
 		for (let i = 0; i < rows; i++) {
 			for (let j = 0; j < cols; j++) {
 				if (grid[i][j] === '') {
-					grid[i][j] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+					const useCommon = Math.random() < 0.7;
+					const letterPool = useCommon ? commonLetters : uncommonLetters;
+					grid[i][j] = letterPool[Math.floor(Math.random() * letterPool.length)];
 				}
 			}
 		}

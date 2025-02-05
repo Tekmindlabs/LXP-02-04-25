@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { WordSearchConfig } from '@/types/class-activity';
 import { useWordSearch } from './hooks/useWordSearch';
+import { useEffect } from 'react';
 
 interface WordSearchActivityProps {
 	config: WordSearchConfig;
@@ -26,12 +27,41 @@ export function WordSearchActivity({ config, viewType, onSubmit }: WordSearchAct
 		handleCellMouseDown,
 		handleCellMouseMove,
 		handleCellMouseUp,
-		elementSize
+		elementSize,
+		handleCellTouchStart,
+		handleCellTouchMove,
+		handleCellTouchEnd,
+		handleKeyNavigation
 	} = useWordSearch({ config, onSubmit });
+
+	useEffect(() => {
+		const announceGameStatus = () => {
+			const announcement = gameStatus === 'playing' 
+				? `Game started. Find ${config.words.length} words. ${foundWords.length} words found.`
+				: gameStatus === 'completed'
+				? `Game completed! You found ${foundWords.length} out of ${config.words.length} words.`
+				: 'Press Start Game to begin';
+			
+			const announcer = document.getElementById('game-announcer');
+			if (announcer) announcer.textContent = announcement;
+		};
+
+		announceGameStatus();
+	}, [gameStatus, foundWords.length, config.words.length]);
 
 	return (
 		<Card className="p-6">
-			<div className="space-y-6">
+			<div 
+				className="space-y-6"
+				role="application"
+				aria-label="Word Search Game"
+			>
+				<div 
+					id="game-announcer" 
+					className="sr-only" 
+					role="status" 
+					aria-live="polite"
+				></div>
 				<div className="flex justify-between items-center">
 					<Button
 						onClick={handleGameStart}

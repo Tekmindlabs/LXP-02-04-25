@@ -9,10 +9,13 @@ export type ActivityType =
 	| 'GAME_WORD_SEARCH'
 	| 'GAME_CROSSWORD'
 	| 'GAME_FLASHCARDS'
+	// Media Activities
+	| 'VIDEO_YOUTUBE'
+	// Reading Activities
+	| 'READING'
 	// Legacy Types
 	| 'QUIZ'
 	| 'ASSIGNMENT'
-	| 'READING'
 	| 'PROJECT'
 	| 'EXAM';
 
@@ -112,6 +115,18 @@ export interface FlashcardConfig extends ActivityConfiguration {
 		front: string;
 		back: string;
 	}[];
+}
+
+export interface VideoConfig extends ActivityConfiguration {
+	videoUrl: string;
+	autoplay: boolean;
+	showControls: boolean;
+}
+
+export interface ReadingConfig extends ActivityConfiguration {
+	content: string;
+	examples: string[];
+	showExamples: boolean;
 }
 
 export interface ClassActivity {

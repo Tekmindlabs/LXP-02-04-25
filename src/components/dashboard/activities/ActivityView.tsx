@@ -1,12 +1,14 @@
 'use client';
 
-import { ActivityType, ClassActivity, MultipleChoiceConfig, DragDropConfig, FillBlanksConfig, WordSearchConfig, FlashcardConfig } from '@/types/class-activity';
+import { ActivityType, ClassActivity, MultipleChoiceConfig, DragDropConfig, FillBlanksConfig, WordSearchConfig, FlashcardConfig, VideoConfig, ReadingConfig } from '@/types/class-activity';
 import {
 	MultipleChoiceActivity,
 	DragDropActivity,
 	FillBlanksActivity,
 	WordSearchActivity,
-	FlashcardActivity
+	FlashcardActivity,
+	VideoActivity,
+	ReadingActivity
 } from './types';
 
 interface ActivityViewProps {
@@ -66,6 +68,21 @@ export function ActivityView({ activity, viewType, onSubmit }: ActivityViewProps
 						config={activity.configuration as FlashcardConfig}
 						viewType={viewType}
 						onSubmit={onSubmit}
+					/>
+				);
+			case 'VIDEO_YOUTUBE':
+				return (
+					<VideoActivity
+						config={activity.configuration as VideoConfig}
+						viewType={viewType}
+						onSubmit={onSubmit}
+					/>
+				);
+			case 'READING':
+				return (
+					<ReadingActivity
+						config={activity.configuration as ReadingConfig}
+						viewType={viewType}
 					/>
 				);
 			default:
