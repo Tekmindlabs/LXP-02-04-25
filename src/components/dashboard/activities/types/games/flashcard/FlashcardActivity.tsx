@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FlashcardConfig } from '@/types/class-activity';
+import { useFlashcard } from './hooks/useFlashcard';
 
 interface FlashcardActivityProps {
 	config: FlashcardConfig;
@@ -12,45 +12,16 @@ interface FlashcardActivityProps {
 }
 
 export function FlashcardActivity({ config, viewType, onSubmit }: FlashcardActivityProps) {
-	const [currentIndex, setCurrentIndex] = useState(0);
-	const [isFlipped, setIsFlipped] = useState(false);
-	const [completedCards, setCompletedCards] = useState<number[]>([]);
-
-	const handleCardClick = () => {
-		if (viewType !== 'PREVIEW') {
-			setIsFlipped(!isFlipped);
+	const {
+		state: { currentIndex, isFlipped, completedCards },
+		handlers: {
+			handleCardFlip,
+			handleNext,
+			handlePrevious,
+			markAsCompleted,
+			handleSubmit
 		}
-	};
-
-	const handleNext = () => {
-		if (currentIndex < config.cards.length - 1) {
-			setCurrentIndex(prev => prev + 1);
-			setIsFlipped(false);
-		}
-	};
-
-	const handlePrevious = () => {
-		if (currentIndex > 0) {
-			setCurrentIndex(prev => prev - 1);
-			setIsFlipped(false);
-		}
-	};
-
-	const markAsCompleted = () => {
-		if (!completedCards.includes(currentIndex)) {
-			setCompletedCards(prev => [...prev, currentIndex]);
-		}
-	};
-
-	const handleSubmit = () => {
-		if (viewType === 'STUDENT') {
-			onSubmit?.({
-				completedCards: completedCards.length,
-				score: completedCards.length,
-				totalPoints: config.cards.length
-			});
-		}
-	};
+	} = useFlashcard({ config, onSubmit });
 
 	return (
 		<div className="space-y-6">
@@ -58,7 +29,7 @@ export function FlashcardActivity({ config, viewType, onSubmit }: FlashcardActiv
 				<Card
 					className={`w-96 h-64 cursor-pointer perspective-1000 transition-transform duration-500 transform-style-preserve-3d 
 						${isFlipped ? 'rotate-y-180' : ''}`}
-					onClick={handleCardClick}
+					onClick={viewType !== 'PREVIEW' ? handleCardFlip : undefined}
 				>
 					<div className="absolute w-full h-full backface-hidden p-6 flex items-center justify-center text-lg">
 						<p className="text-center">{config.cards[currentIndex].front}</p>
