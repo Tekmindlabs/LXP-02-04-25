@@ -260,18 +260,18 @@ export const CombinedAttendanceManagement = () => {
                         <td className="p-2">{student.user.name}</td>
                         <td className="p-2">
                             <Select
-                              value={attendanceData.get(student.id) || 'not-marked'}
+                              value={attendanceData.get(student.id) || 'NOT_MARKED'}
                               onValueChange={(value) => markAttendance(student.id, value as AttendanceStatus)}
                             >
                               <SelectTrigger>
                               <SelectValue placeholder="Select status" />
                               </SelectTrigger>
                               <SelectContent>
-                              <SelectItem value="not-marked">Not Marked</SelectItem>
+                              <SelectItem value="NOT_MARKED">Not Marked</SelectItem>
                               {Object.values(AttendanceStatus).map(status => (
-                                <SelectItem key={status} value={status}>
-                                {status}
-                                </SelectItem>
+                              <SelectItem key={status} value={status}>
+                              {status}
+                              </SelectItem>
                               ))}
                               </SelectContent>
                             </Select>

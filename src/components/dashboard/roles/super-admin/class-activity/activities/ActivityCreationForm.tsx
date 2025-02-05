@@ -115,7 +115,7 @@ export function ActivityCreationForm({
 			type: (activity?.type || template?.type || 'QUIZ_MULTIPLE_CHOICE') as z.infer<typeof formSchema>['type'],
 			status: (activity?.status || 'DRAFT') as z.infer<typeof formSchema>['status'],
 			deadline: activity?.deadline ? activity.deadline.toISOString().split('T')[0] : undefined,
-			subjectId: activity?.subjectId || '',
+			subjectId: activity?.subjectId || 'NO_SUBJECT',
 			configuration: {
 				...(activity?.configuration || template?.configuration || {
 					isGraded: false,
@@ -216,6 +216,7 @@ export function ActivityCreationForm({
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
+											<SelectItem value="NO_SUBJECT">Select a subject</SelectItem>
 											{subjects?.map((subject) => (
 												<SelectItem key={subject.id} value={subject.id}>
 													{subject.name}

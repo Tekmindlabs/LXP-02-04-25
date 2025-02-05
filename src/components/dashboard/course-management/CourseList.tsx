@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Course } from '@/types/course-management';
@@ -61,40 +61,31 @@ export const CourseList = ({ courses = [], onSelect, isLoading = false }: Course
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
 				/>
-				<Select 
-					key="class-group-select"
-					value={classGroupFilter || 'all'} 
-					onValueChange={setClassGroupFilter}
+				<select
+					className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+					value={classGroupFilter}
+					onChange={(e) => setClassGroupFilter(e.target.value)}
 				>
-					<SelectTrigger>
-						<SelectValue placeholder="Select Class Group" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All Class Groups</SelectItem>
-						{uniqueClassGroups.map((groupId) => (
-							<SelectItem key={groupId} value={groupId}>
-								{groupId}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-				<Select 
-					key="year-select"
-					value={yearFilter || 'all'} 
-					onValueChange={setYearFilter}
+					<option value="all">All Class Groups</option>
+					{uniqueClassGroups.map((groupId) => (
+						<option key={groupId} value={groupId}>
+							{groupId}
+						</option>
+					))}
+				</select>
+				<select
+					className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+					value={yearFilter}
+					onChange={(e) => setYearFilter(e.target.value)}
 				>
-					<SelectTrigger>
-						<SelectValue placeholder="Select Year" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All Years</SelectItem>
-						{uniqueYears.map((year) => (
-							<SelectItem key={year} value={year}>
-								{year}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+					<option value="all">All Years</option>
+					{uniqueYears.map((year) => (
+						<option key={year} value={year}>
+							{year}
+						</option>
+					))}
+				</select>
+
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

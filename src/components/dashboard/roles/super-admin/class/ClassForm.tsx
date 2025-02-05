@@ -59,6 +59,7 @@ export const ClassForm = ({ isOpen, onClose, selectedClass, classGroups, teacher
 			capacity: selectedClass?.capacity || 30,
 			status: selectedClass?.status || Status.ACTIVE,
 			teacherIds: selectedClass?.teachers.map(t => t.teacher.id) || [],
+			classTutorId: selectedClass?.classTutorId || "NO_CLASS_TUTOR",
 		},
 	});
 
@@ -223,14 +224,14 @@ export const ClassForm = ({ isOpen, onClose, selectedClass, classGroups, teacher
 				  render={({ field }) => (
 					<FormItem>
 					  <FormLabel>Class Tutor</FormLabel>
-					  <Select onValueChange={field.onChange} value={field.value || ""}>
+					  <Select onValueChange={field.onChange} value={field.value || "NO_CLASS_TUTOR"}>
 						<FormControl>
 						  <SelectTrigger>
 							<SelectValue placeholder="Select class tutor" />
 						  </SelectTrigger>
 						</FormControl>
 						<SelectContent>
-						  <SelectItem value="">None</SelectItem>
+						  <SelectItem value="NO_CLASS_TUTOR">None</SelectItem>
 						  {teachers.map((teacher) => (
 							<SelectItem key={teacher.id} value={teacher.id}>
 							  {teacher.user.name}

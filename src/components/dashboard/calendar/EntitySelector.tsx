@@ -11,11 +11,12 @@ export const EntitySelector = ({ level, value, onChange }: EntitySelectorProps) 
 	const { data: entities } = api.calendar.getEntitiesByLevel.useQuery({ level });
 
 	return (
-		<Select value={value || ''} onValueChange={onChange}>
+		<Select value={value || 'NO_SELECTION'} onValueChange={onChange}>
 			<SelectTrigger className="w-[200px]">
 				<SelectValue placeholder={`Select ${level}`} />
 			</SelectTrigger>
 			<SelectContent>
+				<SelectItem value="NO_SELECTION">No Selection</SelectItem>
 				{entities?.map((entity) => (
 					<SelectItem key={entity.id} value={entity.id}>
 						{entity.name}

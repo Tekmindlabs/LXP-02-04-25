@@ -12,8 +12,7 @@ import {
 } from '@/types/course-management';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 interface CourseViewerProps {
 	course: Course;
@@ -21,8 +20,15 @@ interface CourseViewerProps {
 }
 
 export const CourseViewer = ({ course, onUpdate }: CourseViewerProps) => {
+	// Ensure course and subjects are valid before proceeding
+	if (!course || !Array.isArray(course.subjects)) {
+		return <div className="text-muted-foreground">No course data available</div>;
+	}
+
 	const [isEditMode, setIsEditMode] = useState(false);
-	const [activeSubject, setActiveSubject] = useState<Subject>(course.subjects[0] || null);
+	const [activeSubject, setActiveSubject] = useState<Subject | null>(() => {
+		return course.subjects.length > 0 ? course.subjects[0] : null;
+	});
 
 	const renderContent = (content: ContentBlock) => (
 		<div key={content.id} className="p-3 bg-gray-50 rounded-lg mb-2">
@@ -104,61 +110,78 @@ export const CourseViewer = ({ course, onUpdate }: CourseViewerProps) => {
 
 			{/* Mobile Subject Selector */}
 			<div className="md:hidden">
-				<Select
-					value={activeSubject?.id || course.subjects[0]?.id}
-					onValueChange={(value) => {
-						const subject = course.subjects.find(s => s.id === value);
-						if (subject) setActiveSubject(subject);
-					}}
-				>
-					<SelectTrigger>
-						<SelectValue placeholder="Select Subject" />
-					</SelectTrigger>
-					<SelectContent>
-						{course.subjects.map(subject => (
-							<SelectItem key={subject.id} value={subject.id}>
-								{subject.name}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				{course.subjects.length > 0 ? (
+					<div className="w-full">
+						<select
+							className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+							value={activeSubject?.id}
+							onChange={(e) => {
+								const subject = course.subjects.find(s => s.id === e.target.value);
+								if (subject) setActiveSubject(subject);
+							}}
+						>
+							{course.subjects.map(subject => (
+								<option key={subject.id} value={subject.id}>
+									{subject.name || 'Unnamed Subject'}
+								</option>
+							))}
+						</select>
+					</div>
+				) : (
+					<p className="text-muted-foreground">No subjects available</p>
+				)}
 			</div>
 
 			{/* Desktop Subject Tabs */}
 			<div className="hidden md:block">
-				<Tabs defaultValue={activeSubject?.id} onValueChange={(value) => {
-					const subject = course.subjects.find(s => s.id === value);
-					if (subject) setActiveSubject(subject);
-				}}>
-					<TabsList className="w-full justify-start">
-						{course.subjects.map(subject => (
-							<TabsTrigger key={subject.id} value={subject.id}>
-								{subject.name}
-							</TabsTrigger>
-						))}
-					</TabsList>
-				</Tabs>
+				{course.subjects.length > 0 ? (
+					<div className="border-b">
+						<div className="flex space-x-2">
+							{course.subjects.map(subject => (
+								<button
+									key={subject.id}
+									className={`px-4 py-2 text-sm font-medium ${
+										activeSubject?.id === subject.id
+											? 'border-b-2 border-primary text-primary'
+											: 'text-muted-foreground hover:text-foreground'
+									}`}
+									onClick={() => setActiveSubject(subject)}
+								>
+									{subject.name}
+								</button>
+							))}
+						</div>
+					</div>
+				) : (
+					<p className="text-muted-foreground">No subjects available</p>
+				)}
 			</div>
 
+
 			{/* Subject Content */}
-			{activeSubject && (
-				<Card className="p-4">
-					<div className="space-y-6">
-						<div className="flex justify-between items-center">
-							<h3 className="text-xl font-semibold">{activeSubject.name}</h3>
-							{isEditMode && (
-								<Button size="sm" variant="outline">Add Content</Button>
-							)}
-						</div>
+			{course.subjects.length > 0 ? (
+				activeSubject && (
+					<Card className="p-4">
+						<div className="space-y-6">
+							<div className="flex justify-between items-center">
+								<h3 className="text-xl font-semibold">{activeSubject.name}</h3>
+								{isEditMode && (
+									<Button size="sm" variant="outline">Add Content</Button>
+								)}
+							</div>
 
-						{/* Course Structure */}
-						<div className="space-y-4">
-							{renderStructure(activeSubject.courseStructure)}
+							{/* Course Structure */}
+							<div className="space-y-4">
+								{activeSubject.courseStructure ? (
+									renderStructure(activeSubject.courseStructure)
+								) : (
+									<p className="text-muted-foreground">No course structure available</p>
+								)}
+							</div>
 						</div>
-
-					</div>
-				</Card>
-			)}
+					</Card>
+				)
+			) : null}
 		</div>
 	);
 };

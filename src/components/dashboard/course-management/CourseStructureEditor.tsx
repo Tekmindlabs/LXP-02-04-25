@@ -5,8 +5,8 @@ import { CourseStructure, ContentBlock, ChapterUnit, BlockUnit, WeeklyUnit } fro
 import { Button } from '../../ui/button';
 import { Textarea } from '../../ui/textarea';
 import { Card } from '../../ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import {
+
 	DndContext,
 	DragOverlay,
 	useSensors,
@@ -196,20 +196,17 @@ export const CourseStructureEditor = ({ initialStructure, onSave }: CourseStruct
 
 	const renderContentForm = (unitIndex: number, sectionIndex?: number) => (
 		<div className="mt-3 space-y-2">
-			<Select
+			<select
+				className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 				value={currentContent.type}
-				onValueChange={(value) => setCurrentContent(prev => ({ ...prev, type: value as ContentBlock['type'] }))}
+				onChange={(e) => setCurrentContent(prev => ({ ...prev, type: e.target.value as ContentBlock['type'] }))}
 			>
-				<SelectTrigger>
-					<SelectValue placeholder="Select content type" />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="TEXT">Text</SelectItem>
-					<SelectItem value="VIDEO">Video</SelectItem>
-					<SelectItem value="QUIZ">Quiz</SelectItem>
-					<SelectItem value="ASSIGNMENT">Assignment</SelectItem>
-				</SelectContent>
-			</Select>
+				<option value="TEXT">Text</option>
+				<option value="VIDEO">Video</option>
+				<option value="QUIZ">Quiz</option>
+				<option value="ASSIGNMENT">Assignment</option>
+			</select>
+
 			<Textarea
 				value={currentContent.content}
 				onChange={(e) => setCurrentContent(prev => ({ ...prev, content: e.target.value }))}

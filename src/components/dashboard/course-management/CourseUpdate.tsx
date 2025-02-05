@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CourseStructureEditor } from './CourseStructureEditor';
 import type { Course, Subject } from '@/types/course-management';
 import { toast } from 'sonner';
 import { api } from '@/utils/api';
+
 
 interface CourseUpdateProps {
 	course?: Course;
@@ -119,9 +119,11 @@ export const CourseUpdate = ({ course, onUpdate }: CourseUpdateProps) => {
 
 				<div>
 					<label className="block text-sm font-medium mb-1">Class Group</label>
-					<Select
+					<select
+						className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 						value={courseData.classGroupId || 'no-selection'}
-						onValueChange={(value) => {
+						onChange={(e) => {
+							const value = e.target.value;
 							if (value === 'no-selection') return;
 							const selectedGroup = classGroups?.find(group => group.id === value);
 							setCourseData(prev => ({
@@ -131,20 +133,15 @@ export const CourseUpdate = ({ course, onUpdate }: CourseUpdateProps) => {
 							}));
 						}}
 					>
-						<SelectTrigger>
-							<SelectValue placeholder="Select Class Group" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="no-selection">Select a class group</SelectItem>
-							{classGroups && classGroups.length > 0 && classGroups.map((group) => (
-								<SelectItem key={group.id} value={group.id}>
-									{group.name || 'Unnamed Group'}
-								</SelectItem>
-							))}
-						</SelectContent>
-
-					</Select>
+						<option value="no-selection">Select a class group</option>
+						{classGroups && classGroups.length > 0 && classGroups.map((group) => (
+							<option key={group.id} value={group.id}>
+								{group.name || 'Unnamed Group'}
+							</option>
+						))}
+					</select>
 				</div>
+
 
 				{selectedClassGroup?.calendar && (
 					<div>
