@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AttendanceStats } from './AttendanceStats';
+import { AttendanceDashboard } from './AttendanceDashboard';
 import { useSwipeable } from 'react-swipeable';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/utils/api';
@@ -183,9 +184,18 @@ export const CombinedAttendanceManagement = () => {
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard">
-            <AttendanceDashboard {...dashboardData} />
-          </TabsContent>
+            <TabsContent value="dashboard">
+            {isDashboardLoading ? (
+              <div className="flex justify-center p-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <AttendanceDashboard 
+              attendanceTrend={dashboardData?.attendanceTrend}
+              classAttendance={dashboardData?.classAttendance}
+              />
+            )}
+            </TabsContent>
 
           <TabsContent value="mark">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

@@ -17,7 +17,8 @@ import {
   LuBell,
   LuUserCog,
   LuActivity,
-  LuBook 
+  LuBook,
+  LuClipboardCheck
 } from "react-icons/lu";
 import { type FC } from "react";
 
@@ -93,6 +94,11 @@ const menuItems: MenuItem[] = [
     title: "Class Activities",
     href: "/dashboard/[role]/class-activity",
     icon: LuActivity,
+  },
+  {
+    title: "Attendance Management",
+    href: "/dashboard/[role]/attendance",
+    icon: LuClipboardCheck,
   },
   {
     title: "Knowledge Base",
