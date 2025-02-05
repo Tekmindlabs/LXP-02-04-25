@@ -21,3 +21,33 @@ export const attendanceSchema = z.object({
 });
 
 export type AttendanceRecord = z.infer<typeof attendanceSchema>;
+
+export interface AttendanceStatsData {
+  todayStats: {
+    present: number;
+    absent: number;
+    total: number;
+  };
+  weeklyPercentage: number;
+  mostAbsentStudents: Array<{
+    name: string;
+    absences: number;
+  }>;
+  lowAttendanceClasses: Array<{
+    name: string;
+    percentage: number;
+  }>;
+}
+
+export interface AttendanceDashboardData {
+  attendanceTrend: Array<{
+    date: string;
+    percentage: number;
+  }>;
+  classAttendance: Array<{
+    className: string;
+    present: number;
+    absent: number;
+    percentage: number;
+  }>;
+}

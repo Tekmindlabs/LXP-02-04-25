@@ -54,6 +54,10 @@ const superAdminNavItems = [
 		href: "/dashboard/[role]/class-activity",
 	},
 	{
+		title: "Attendance Management",
+		href: "/dashboard/[role]/attendance",
+	},
+	{
 		title: "Messaging",
 		href: "/dashboard/[role]/messaging",
 	},

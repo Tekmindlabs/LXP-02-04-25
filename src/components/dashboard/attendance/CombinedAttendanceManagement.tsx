@@ -5,6 +5,8 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { AttendanceStats } from './AttendanceStats';
 import { useSwipeable } from 'react-swipeable';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/utils/api';
@@ -146,17 +148,47 @@ export const CombinedAttendanceManagement = () => {
   };
 
 
+  // Fetch stats and dashboard data
+  const { data: statsData, isLoading: isStatsLoading } = api.attendance.getStats.useQuery();
+  const { data: dashboardData, isLoading: isDashboardLoading } = api.attendance.getDashboardData.useQuery();
+
+
   return (
     <div className="container mx-auto p-4">
+        {isStatsLoading ? (
+        <div className="flex justify-center p-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+        ) : (
+        <AttendanceStats {...(statsData || {
+          todayStats: { present: 0, absent: 0, total: 0 },
+          weeklyPercentage: 0,
+          mostAbsentStudents: [],
+          lowAttendanceClasses: []
+        })} />
+        )}
+
       <Card className="mb-4">
         <CardHeader>
-            <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold">Attendance Management</h2>
-            </div>
-
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="mark">Mark Attendance</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard">
+            <AttendanceDashboard {...dashboardData} />
+          </TabsContent>
+
+          <TabsContent value="mark">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-2">Select Class</label>
                 <Select
@@ -291,16 +323,80 @@ export const CombinedAttendanceManagement = () => {
             </Tabs>
           )}
 
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <div className="space-y-4">
+            <div className="flex gap-4">
+              <Button variant="outline">Daily Report</Button>
+              <Button variant="outline">Weekly Report</Button>
+              <Button variant="outline">Monthly Report</Button>
+            </div>
+            <Card>
+              <CardContent className="pt-6">
+              <h3 className="font-semibold mb-4">Generate Custom Report</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes?.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                  ))}
+                </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                <Button variant="outline">Export PDF</Button>
+                <Button variant="outline">Export Excel</Button>
+                </div>
+              </div>
+              </CardContent>
+            </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+            <CardContent className="pt-6">
+              <h3 className="font-semibold mb-4">Attendance Settings</h3>
+              <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span>Enable Notifications</span>
+                <Switch />
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Auto-mark Late After</span>
+                <Select defaultValue="15">
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select minutes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 minutes</SelectItem>
+                  <SelectItem value="15">15 minutes</SelectItem>
+                  <SelectItem value="20">20 minutes</SelectItem>
+                  <SelectItem value="30">30 minutes</SelectItem>
+                </SelectContent>
+                </Select>
+              </div>
+              </div>
+            </CardContent>
+            </Card>
+          </TabsContent>
+          </Tabs>
+
           <div className="mt-4 flex justify-end">
-            <Button
-              onClick={handleSave}
-              disabled={!selectedClass || attendanceData.size === 0}
-            >
-              Save Attendance
-            </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!selectedClass || attendanceData.size === 0}
+          >
+            Save Attendance
+          </Button>
           </div>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
   );
 };
