@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { CourseStructure, ContentBlock, ChapterUnit, BlockUnit, WeeklyUnit } from '../../../types/course-management';
 import { Button } from '../../ui/button';
-import { Textarea } from '../../ui/textarea';
 import { Card } from '../../ui/card';
+import { Badge } from '../../ui/badge';
+import { ActivityModal } from './ActivityModal';
+import { ActivityTemplate, ActivityType } from '../../../types/class-activity';
+
 import {
 
 	DndContext,
@@ -40,28 +43,57 @@ const SortableContentBlock = ({ content }: { content: ContentBlock }) => {
 		transition,
 	} = useSortable({ id: content.id });
 
+	const renderContent = () => {
+		try {
+			if (content.type.startsWith('QUIZ_') || 
+					content.type.startsWith('GAME_') || 
+					content.type === 'VIDEO_YOUTUBE' || 
+					content.type === 'READING') {
+				const activity = JSON.parse(content.content) as ActivityTemplate;
+				return (
+					<div className="flex items-center justify-between">
+						<div>
+							<h4 className="font-medium">{activity.title}</h4>
+							<p className="text-sm text-muted-foreground">{activity.description || 'No description'}</p>
+						</div>
+						<div className="flex items-center gap-2">
+							{activity.configuration.isGraded && (
+								<Badge variant="secondary">Graded</Badge>
+							)}
+							<Badge>{activity.type.replace(/_/g, ' ')}</Badge>
+						</div>
+					</div>
+				);
+			}
+			return <p className="text-sm">{content.type}: {content.content}</p>;
+		} catch (e) {
+			return <p className="text-sm">{content.type}: {content.content}</p>;
+		}
+	};
+
 	return (
 		<div
 			ref={setNodeRef}
 			{...attributes}
 			{...listeners}
-			className="p-2 bg-gray-50 rounded cursor-move hover:bg-gray-100 transition-colors"
+			className="p-4 bg-card rounded-lg border cursor-move hover:bg-accent/50 transition-colors"
 			style={{
 				transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
 				transition,
 			}}
 		>
-			<p className="text-sm">{content.type}: {content.content}</p>
+			{renderContent()}
 		</div>
 	);
 };
 
 export const CourseStructureEditor = ({ initialStructure, onSave }: CourseStructureEditorProps) => {
 	const [structure, setStructure] = useState<CourseStructure>(initialStructure);
-	const [currentContent, setCurrentContent] = useState<Partial<ContentBlock>>({
-		type: 'TEXT',
-		content: ''
-	});
+
+
+	const [showActivityModal, setShowActivityModal] = useState(false);
+	const [currentUnitIndex, setCurrentUnitIndex] = useState<number>(0);
+	const [currentSectionIndex, setCurrentSectionIndex] = useState<number | undefined>();
 	const [activeId, setActiveId] = useState<string | null>(null);
 
 	const sensors = useSensors(
@@ -132,36 +164,8 @@ export const CourseStructureEditor = ({ initialStructure, onSave }: CourseStruct
 		</SortableContext>
 	);
 
-	const handleAddContent = (unitIndex: number, sectionIndex?: number) => {
-		if (!currentContent.content) return;
 
-		const newContent: ContentBlock = {
-			id: crypto.randomUUID(),
-			type: currentContent.type!,
-			content: currentContent.content
-		};
 
-		setStructure(prev => {
-			const newStructure = { ...prev };
-			
-			if (prev.type === 'CHAPTER') {
-				const units = prev.units as ChapterUnit[];
-				if (typeof sectionIndex === 'number') {
-					units[unitIndex].sections[sectionIndex].content.push(newContent);
-				}
-			} else if (prev.type === 'BLOCK') {
-				const units = prev.units as BlockUnit[];
-				units[unitIndex].content.push(newContent);
-			} else if (prev.type === 'WEEKLY') {
-				const units = prev.units as WeeklyUnit[];
-				units[unitIndex].dailyActivities[sectionIndex!].content.push(newContent);
-			}
-
-			return newStructure;
-		});
-
-		setCurrentContent({ type: 'TEXT', content: '' });
-	};
 
 	const renderChapterStructure = () => {
 		const units = structure.units as ChapterUnit[];
@@ -187,41 +191,56 @@ export const CourseStructureEditor = ({ initialStructure, onSave }: CourseStruct
 								) : null}
 							</DragOverlay>
 						</DndContext>
-						{renderContentForm(unitIndex, sectionIndex)}
+						{renderAddActivityButton(unitIndex, sectionIndex)}
 					</div>
 				))}
 			</Card>
 		));
 	};
 
-	const renderContentForm = (unitIndex: number, sectionIndex?: number) => (
-		<div className="mt-3 space-y-2">
-			<select
-				className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-				value={currentContent.type}
-				onChange={(e) => setCurrentContent(prev => ({ ...prev, type: e.target.value as ContentBlock['type'] }))}
-			>
-				<option value="TEXT">Text</option>
-				<option value="VIDEO">Video</option>
-				<option value="QUIZ">Quiz</option>
-				<option value="ASSIGNMENT">Assignment</option>
-			</select>
-
-			<Textarea
-				value={currentContent.content}
-				onChange={(e) => setCurrentContent(prev => ({ ...prev, content: e.target.value }))}
-				placeholder="Enter content"
-				className="h-24"
-			/>
+	const renderAddActivityButton = (unitIndex: number, sectionIndex?: number) => (
+		<div className="mt-3">
 			<Button 
 				type="button" 
-				onClick={() => handleAddContent(unitIndex, sectionIndex)}
+				onClick={() => {
+					setCurrentUnitIndex(unitIndex);
+					setCurrentSectionIndex(sectionIndex);
+					setShowActivityModal(true);
+				}}
 				size="sm"
 			>
-				Add Content
+				Add Activity
 			</Button>
 		</div>
 	);
+
+	const handleActivitySave = (activity: ActivityTemplate) => {
+		setStructure(prev => {
+			const newStructure = { ...prev };
+			
+			const newContent: ContentBlock = {
+				id: activity.id,
+				type: activity.type as ContentBlock['type'],
+				content: JSON.stringify(activity),
+				metadata: {}
+			};
+			
+			if (prev.type === 'CHAPTER') {
+				const units = prev.units as ChapterUnit[];
+				if (typeof currentSectionIndex === 'number') {
+					units[currentUnitIndex].sections[currentSectionIndex].content.push(newContent);
+				}
+			} else if (prev.type === 'BLOCK') {
+				const units = prev.units as BlockUnit[];
+				units[currentUnitIndex].content.push(newContent);
+			} else if (prev.type === 'WEEKLY') {
+				const units = prev.units as WeeklyUnit[];
+				units[currentUnitIndex].dailyActivities[currentSectionIndex!].content.push(newContent);
+			}
+
+			return newStructure;
+		});
+	};
 
 	const renderBlockStructure = () => {
 		const units = structure.units as BlockUnit[];
@@ -244,7 +263,7 @@ export const CourseStructureEditor = ({ initialStructure, onSave }: CourseStruct
 						) : null}
 					</DragOverlay>
 				</DndContext>
-				{renderContentForm(unitIndex)}
+				{renderAddActivityButton(unitIndex)}
 			</Card>
 		));
 	};
@@ -275,7 +294,7 @@ export const CourseStructureEditor = ({ initialStructure, onSave }: CourseStruct
 								) : null}
 							</DragOverlay>
 						</DndContext>
-						{renderContentForm(unitIndex, dayIndex)}
+						{renderAddActivityButton(unitIndex, dayIndex)}
 					</div>
 				))}
 			</Card>
@@ -292,6 +311,12 @@ export const CourseStructureEditor = ({ initialStructure, onSave }: CourseStruct
 			{structure.type === 'CHAPTER' && renderChapterStructure()}
 			{structure.type === 'BLOCK' && renderBlockStructure()}
 			{structure.type === 'WEEKLY' && renderWeeklyStructure()}
+
+			<ActivityModal 
+				open={showActivityModal}
+				onOpenChange={setShowActivityModal}
+				onSave={handleActivitySave}
+			/>
 		</div>
 	);
 };

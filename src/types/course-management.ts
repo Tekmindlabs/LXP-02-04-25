@@ -1,3 +1,5 @@
+import { ActivityType } from './class-activity';
+
 export interface Calendar {
 	id: string;
 	name: string;
@@ -15,6 +17,7 @@ export interface ClassGroup {
 }
 
 // Core Course Types
+
 export interface Course {
 	id: string;
 	name: string;
@@ -51,7 +54,7 @@ export type CourseStructureType = 'CHAPTER' | 'BLOCK' | 'WEEKLY';
 
 export interface ContentBlock {
 	id: string;
-	type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'ASSIGNMENT';
+	type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'ASSIGNMENT' | ActivityType;
 	content: string;
 	metadata?: Record<string, unknown>;
 }
