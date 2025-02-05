@@ -50,7 +50,7 @@ export interface ClassActivity {
     id: string;
     type: 'ASSIGNMENT' | 'QUIZ' | 'EXAM';
     title: string;
-    dueDate?: Date;
+    deadline?: Date;
     status: 'PENDING' | 'COMPLETED' | 'GRADED';
     averageScore?: number;
 }

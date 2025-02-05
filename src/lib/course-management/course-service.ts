@@ -12,6 +12,7 @@ import {
 	BlockUnit,
 	WeeklyUnit
 } from "@/types/course-management";
+import { ActivityType, ActivityStatus, ActivityConfiguration } from "@/types/class-activity";
 
 interface CourseSettings {
 	allowLateSubmissions: boolean;
@@ -216,15 +217,21 @@ export const courseService = new CourseService();
 
 // Helper mapping functions
 interface ClassActivityInput {
-
 	id: string;
-	type?: string;
+	type: ActivityType;
 	title: string;
-	description: string;
-	dueDate?: Date | string | null;
-	points?: number | null;
-	status?: string;
+	description?: string | null;
+	deadline?: Date | null;
+	status: ActivityStatus;
+	classId?: string | null;
+	classGroupId?: string | null;
+	gradingCriteria?: string | null;
+	configuration: ActivityConfiguration;
+	createdAt: Date;
+	updatedAt: Date;
 }
+
+
 
 interface CourseStructureInput {
 	type: CourseStructureType;
@@ -245,12 +252,15 @@ interface SubjectInput {
 	}>;
 	activities?: Array<{
 		id: string;
-		type: string;
+		type: ActivityType;
 		title: string;
-		description: string;
-		dueDate: Date | null;
-		points: number | null;
-		status: string;
+		description: string | null;
+		deadline: Date | null;
+		status: ActivityStatus;
+		classId?: string | null;
+		classGroupId?: string | null;
+		gradingCriteria?: string | null;
+		configuration?: Record<string, unknown>;
 	}>;
 }
 
@@ -264,13 +274,19 @@ const serializeJson = (data: unknown): Prisma.InputJsonValue => {
 
 const mapClassActivity = (a: ClassActivityInput): ClassActivity => ({
 	id: a.id,
-	type: (a.type || 'ASSIGNMENT') as ClassActivity['type'],
+	type: a.type,
 	title: a.title,
-	description: a.description,
-	dueDate: a.dueDate ? new Date(a.dueDate) : undefined,
-	points: typeof a.points === 'number' ? a.points : undefined,
-	status: (a.status || 'DRAFT') as ClassActivity['status']
+	description: a.description || '',
+	deadline: a.deadline || undefined,
+	status: a.status,
+	classId: a.classId || undefined,
+	classGroupId: a.classGroupId || undefined,
+	gradingCriteria: a.gradingCriteria || undefined,
+	configuration: a.configuration,
+	createdAt: a.createdAt || new Date(),
+	updatedAt: a.updatedAt || new Date()
 });
+
 
 const parseCourseStructure = (data: unknown): CourseStructure => {
 	if (!data) {
@@ -643,18 +659,21 @@ export class CourseManagementService {
 		const newActivity = await db.classActivity.create({
 			data: {
 				title: activity.title,
-				description: activity.description,
+				description: activity.description || '',
 				type: activity.type,
 				status: activity.status,
-				dueDate: activity.dueDate || null,
-				points: activity.points || null,
+				deadline: activity.deadline || null,
+				configuration: activity.configuration || {},
 				subject: {
 					connect: { id: subjectId }
 				}
 			}
 		});
 
-		return mapClassActivity(newActivity);
+		return mapClassActivity({
+			...newActivity,
+			configuration: newActivity.configuration as ActivityConfiguration
+		});
 	}
 
 

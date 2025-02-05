@@ -63,8 +63,8 @@ export const gradebookRouter = createTRPCRouter({
 					id: activity.id,
 					title: activity.title,
 					deadline: activity.deadline,
-					totalPoints: activity.configuration?.totalPoints,
 					submissions: activity.submissions.map((sub) => ({
+
 						studentId: sub.studentId,
 						studentName: sub.student.name,
 						grade: sub.grade,
@@ -79,7 +79,7 @@ export const gradebookRouter = createTRPCRouter({
 						activityId: activity.id,
 						activityName: activity.title,
 						grade: activity.submissions.find((sub) => sub.studentId === student.id)?.grade ?? 0,
-						totalPoints: activity.configuration?.totalPoints ?? 0,
+
 					})),
 				})),
 			};
@@ -95,14 +95,28 @@ export const gradebookRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const { activityId, studentId, grade, feedback } = input;
 
-			return ctx.prisma.submission.upsert({
+			const existingSubmission = await ctx.prisma.activitySubmission.findFirst({
 				where: {
-					activityId_studentId: {
-						activityId,
-						studentId,
-					},
+					activityId,
+					studentId,
 				},
-				create: {
+			});
+
+			if (existingSubmission) {
+				return ctx.prisma.activitySubmission.update({
+					where: { id: existingSubmission.id },
+					data: {
+						grade,
+						feedback,
+						status: 'GRADED',
+						gradedAt: new Date(),
+						gradedBy: ctx.session.user.id,
+					},
+				});
+			}
+
+			return ctx.prisma.activitySubmission.create({
+				data: {
 					activityId,
 					studentId,
 					grade,
@@ -111,13 +125,6 @@ export const gradebookRouter = createTRPCRouter({
 					gradedAt: new Date(),
 					gradedBy: ctx.session.user.id,
 					content: {},
-				},
-				update: {
-					grade,
-					feedback,
-					status: 'GRADED',
-					gradedAt: new Date(),
-					gradedBy: ctx.session.user.id,
 				},
 			});
 		}),
@@ -135,17 +142,12 @@ function calculateGradeDistribution(grades: number[]): Record<string, number> {
 }
 
 function calculateOverallGrade(studentId: string, activities: ActivityWithSubmissions[]): number {
-	const studentGrades = activities.flatMap(activity =>
+	const grades = activities.flatMap(activity =>
 		activity.submissions
 			.filter((sub) => sub.studentId === studentId)
-			.map((sub) => ({
-				grade: sub.grade ?? 0,
-				totalPoints: activity.points ?? 0,
-			}))
+			.map((sub) => sub.grade ?? 0)
 	);
 
-	const totalEarned = studentGrades.reduce((sum, { grade }) => sum + grade, 0);
-	const totalPossible = studentGrades.reduce((sum, { totalPoints }) => sum + totalPoints, 0);
+	return grades.length ? grades.reduce((sum, grade) => sum + grade, 0) / grades.length : 0;
 
-	return totalPossible ? (totalEarned / totalPossible) * 100 : 0;
 }

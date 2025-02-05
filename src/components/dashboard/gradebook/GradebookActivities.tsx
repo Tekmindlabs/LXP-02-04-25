@@ -50,7 +50,7 @@ export const GradebookActivities: React.FC<GradebookActivitiesProps> = ({ activi
 				<div key={activity.id} className="space-y-4">
 					<h3 className="text-lg font-medium">{activity.title}</h3>
 					<div className="text-sm text-muted-foreground">
-						Due: {activity.dueDate ? new Date(activity.dueDate).toLocaleDateString() : 'No due date'}
+						Due: {activity.deadline ? new Date(activity.deadline).toLocaleDateString() : 'No deadline'}
 					</div>
 					
 					<Table>
@@ -76,7 +76,7 @@ export const GradebookActivities: React.FC<GradebookActivitiesProps> = ({ activi
 											onChange={(e) => handleGradeChange(activity.id, submission.studentId, e.target.value)}
 											className="w-20"
 											min={0}
-											max={activity.points ?? 100}
+											max={100}
 										/>
 									</TableCell>
 									<TableCell>

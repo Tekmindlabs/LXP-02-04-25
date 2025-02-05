@@ -1,122 +1,228 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { ActivityConfiguration, ActivityType, WordSearchConfig, VideoConfig, ReadingConfig } from "@/types/class-activity";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+'use client';
 
-const baseConfigSchema = z.object({
-	timeLimit: z.number().min(0).optional(),
-	attempts: z.number().min(1).optional(),
-	passingScore: z.number().min(0).max(100).optional(),
-	instructions: z.string().optional(),
-	availabilityDate: z.date().optional(),
-	deadline: z.date().optional(),
-	isGraded: z.boolean(),
-	totalPoints: z.number().min(0).optional(),
-	gradingType: z.enum(['AUTOMATIC', 'MANUAL', 'NONE']),
-	viewType: z.enum(['PREVIEW', 'STUDENT', 'CONFIGURATION'])
-});
+import { api } from '@/utils/api';
 
-const activityFormSchema = z.object({
-	title: z.string().min(3, "Title must be at least 3 characters"),
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { 
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage 
+} from '@/components/ui/form';
+import { 
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue 
+} from '@/components/ui/select';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import type { ActivityConfiguration } from '@/types/class-activity';
+
+
+
+
+const ACTIVITY_TYPES = [
+	'QUIZ_MULTIPLE_CHOICE',
+	'QUIZ_DRAG_DROP',
+	'QUIZ_FILL_BLANKS',
+	'GAME_WORD_SEARCH',
+	'VIDEO_YOUTUBE',
+	'READING'
+] as const;
+
+const ACTIVITY_STATUSES = [
+	'DRAFT',
+	'PUBLISHED',
+	'PENDING'
+] as const;
+
+const formSchema = z.object({
+	title: z.string().min(1, 'Title is required'),
 	description: z.string().optional(),
-	type: z.custom<ActivityType>(),
-	configuration: z.discriminatedUnion('type', [
-		z.object({
-			type: z.literal('READING'),
-			content: z.string().min(1, "Content is required"),
-			examples: z.array(z.string()),
-			showExamples: z.boolean()
-		}).merge(baseConfigSchema),
-		z.object({
-			type: z.literal('GAME_WORD_SEARCH'),
-			words: z.array(z.string()).min(1, "At least one word is required"),
-			gridSize: z.object({
-				rows: z.number().min(5).max(20),
-				cols: z.number().min(5).max(20)
-			}),
-			orientations: z.object({
-				horizontal: z.boolean(),
-				vertical: z.boolean(),
-				diagonal: z.boolean(),
-				reverseHorizontal: z.boolean(),
-				reverseVertical: z.boolean(),
-				reverseDiagonal: z.boolean()
-			}),
-			difficulty: z.enum(['easy', 'medium', 'hard']),
-			timeLimit: z.number().min(0).optional(),
-			showWordList: z.boolean(),
-			fillRandomLetters: z.boolean()
-		}).merge(baseConfigSchema),
-		z.object({
-			type: z.literal('VIDEO_YOUTUBE'),
-			videoUrl: z.string().url("Please enter a valid YouTube URL"),
-			autoplay: z.boolean(),
-			showControls: z.boolean()
-		}).merge(baseConfigSchema),
-		z.object({
-			type: z.literal('DEFAULT'),
-		}).merge(baseConfigSchema)
-	])
+	type: z.enum(ACTIVITY_TYPES),
+	status: z.enum(ACTIVITY_STATUSES),
+	deadline: z.string().optional().transform(val => val ? new Date(val) : undefined),
+	classId: z.string().optional(),
+	classGroupId: z.string().optional(),
+	subjectId: z.string(),
+	configuration: z.object({
+
+		isGraded: z.boolean(),
+		gradingType: z.enum(['AUTOMATIC', 'MANUAL', 'NONE']),
+		viewType: z.enum(['PREVIEW', 'STUDENT', 'CONFIGURATION']).default('STUDENT'),
+		totalPoints: z.number().optional(),
+		autoplay: z.boolean().optional(),
+		showControls: z.boolean().optional(),
+		showExamples: z.boolean().optional(),
+		videoUrl: z.string().optional(),
+		words: z.array(z.string()).optional(),
+		gridSize: z.object({
+			rows: z.number(),
+			cols: z.number()
+		}).optional(),
+		difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+		content: z.string().optional(),
+		examples: z.array(z.string()).optional(),
+		showWordList: z.boolean().optional(),
+		fillRandomLetters: z.boolean().optional(),
+		orientations: z.object({
+			horizontal: z.boolean(),
+			vertical: z.boolean(),
+			diagonal: z.boolean(),
+			reverseHorizontal: z.boolean(),
+			reverseVertical: z.boolean(),
+			reverseDiagonal: z.boolean()
+		}).optional()
+	})
 });
 
-type ActivityFormValues = z.infer<typeof activityFormSchema>;
+type FormInput = z.input<typeof formSchema>;
+type FormOutput = z.output<typeof formSchema>;
 
 interface ActivityCreationFormProps {
-	onSubmit: (values: ActivityFormValues) => void;
-	onCancel: () => void;
-	initialValues?: Partial<ActivityFormValues>;
+	activityId?: string | null;
+	template?: any;
+	onClose: () => void;
+	onSubmit?: (values: FormOutput) => void;
 }
 
-export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: ActivityCreationFormProps) {
-	const form = useForm<ActivityFormValues>({
-		resolver: zodResolver(activityFormSchema),
-		defaultValues: initialValues || {
+export function ActivityCreationForm({ 
+	activityId, 
+	template, 
+	onClose,
+	onSubmit: handleSubmit 
+}: ActivityCreationFormProps) {
+	const utils = api.useContext();
+	const { data: subjects } = api.subject.getAll.useQuery();
+	const { data: activity } = api.classActivity.getById.useQuery(
+		activityId as string,
+		{ enabled: !!activityId }
+	);
+
+	const form = useForm<FormInput>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
+			title: activity?.title || template?.title || '',
+			description: activity?.description || template?.description || '',
+			type: (activity?.type || template?.type || 'QUIZ_MULTIPLE_CHOICE') as z.infer<typeof formSchema>['type'],
+			status: (activity?.status || 'DRAFT') as z.infer<typeof formSchema>['status'],
+			deadline: activity?.deadline ? activity.deadline.toISOString().split('T')[0] : undefined,
+			subjectId: activity?.subjectId || '',
 			configuration: {
-				isGraded: false,
-				gradingType: 'NONE',
-				viewType: 'CONFIGURATION'
+				...(activity?.configuration || template?.configuration || {
+					isGraded: false,
+					gradingType: 'NONE',
+					viewType: 'STUDENT',
+					showControls: true
+				}) as ActivityConfiguration
 			}
+
 		}
 	});
 
+	const createMutation = api.classActivity.create.useMutation({
+		onSuccess: () => {
+			utils.classActivity.getAll.invalidate();
+			onClose();
+		}
+	});
+
+	const updateMutation = api.classActivity.update.useMutation({
+		onSuccess: () => {
+			utils.classActivity.getAll.invalidate();
+			onClose();
+		}
+	});
+
+	const onSubmit = (values: FormInput) => {
+		const formattedValues = formSchema.parse({
+			...values,
+			configuration: {
+				...values.configuration,
+				orientations: values.configuration.orientations || {
+					horizontal: false,
+					vertical: false,
+					diagonal: false,
+					reverseHorizontal: false,
+					reverseVertical: false,
+					reverseDiagonal: false
+				}
+			}
+		});
+		
+		if (activityId) {
+			updateMutation.mutate({ id: activityId, ...formattedValues });
+		} else if (handleSubmit) {
+			handleSubmit(formattedValues);
+		} else {
+			createMutation.mutate(formattedValues);
+		}
+		onClose();
+	};
+
+
+
+
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Create Activity</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+		<Form {...form}>
+			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
 						<FormField
-							control={form.control}
-							name="title"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Title</FormLabel>
-									<FormControl>
-										<Input {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
+						  control={form.control}
+						  name="title"
+						  render={({ field }) => (
+							<FormItem>
+							  <FormLabel>Title</FormLabel>
+							  <FormControl>
+								<Input {...field} />
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+
+						<FormField
+						  control={form.control}
+						  name="description"
+						  render={({ field }) => (
+							<FormItem>
+							  <FormLabel>Description</FormLabel>
+							  <FormControl>
+								<Textarea {...field} />
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
 						/>
 
 						<FormField
 							control={form.control}
-							name="description"
+							name="subjectId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
-									<FormControl>
-										<Textarea {...field} />
-									</FormControl>
+									<FormLabel>Subject</FormLabel>
+									<Select onValueChange={field.onChange} defaultValue={field.value}>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select subject" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{subjects?.map((subject) => (
+												<SelectItem key={subject.id} value={subject.id}>
+													{subject.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -180,27 +286,31 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 						)}
 
 						<FormField
-							control={form.control}
-							name="type"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Activity Type</FormLabel>
-									<Select onValueChange={field.onChange} defaultValue={field.value}>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="Select activity type" />
-											</SelectTrigger>
-										</FormControl>
-										<SelectContent>
-											<SelectItem value="GAME_WORD_SEARCH">Word Search</SelectItem>
-											<SelectItem value="VIDEO_YOUTUBE">YouTube Video</SelectItem>
-											<SelectItem value="READING">Reading</SelectItem>
-											<SelectItem value="DEFAULT">Default</SelectItem>
-										</SelectContent>
-									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
+						  control={form.control}
+						  name="type"
+						  render={({ field }) => (
+							<FormItem>
+							  <FormLabel>Type</FormLabel>
+							  <Select
+								onValueChange={field.onChange}
+								defaultValue={field.value}
+							  >
+								<FormControl>
+								  <SelectTrigger>
+									<SelectValue placeholder="Select type" />
+								  </SelectTrigger>
+								</FormControl>
+								<SelectContent>
+								  {ACTIVITY_TYPES.map((type) => (
+									<SelectItem key={type} value={type}>
+									  {type.replace(/_/g, ' ')}
+									</SelectItem>
+								  ))}
+								</SelectContent>
+							  </Select>
+							  <FormMessage />
+							</FormItem>
+						  )}
 						/>
 
 						{form.watch('type') === 'VIDEO_YOUTUBE' && (
@@ -334,7 +444,10 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 											<FormItem className="flex items-center justify-between">
 												<FormLabel>Show Word List</FormLabel>
 												<FormControl>
-													<Switch checked={field.value} onCheckedChange={field.onChange} />
+													<Switch 
+														checked={field.value as boolean} 
+														onCheckedChange={field.onChange}
+													/>
 												</FormControl>
 											</FormItem>
 										)}
@@ -346,7 +459,10 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 											<FormItem className="flex items-center justify-between">
 												<FormLabel>Fill Empty Spaces</FormLabel>
 												<FormControl>
-													<Switch checked={field.value} onCheckedChange={field.onChange} />
+													<Switch 
+														checked={field.value as boolean} 
+														onCheckedChange={field.onChange}
+													/>
 												</FormControl>
 											</FormItem>
 										)}
@@ -369,10 +485,11 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 														<FormItem key={key} className="flex items-center space-x-2">
 															<FormControl>
 																<Switch
-																	checked={field.value?.[key as keyof typeof field.value] ?? false}
+																	checked={(field.value as any)?.[key] ?? false}
 																	onCheckedChange={(checked) => {
+																		const currentValue = field.value as Record<string, boolean> || {};
 																		field.onChange({
-																			...field.value,
+																			...currentValue,
 																			[key]: checked
 																		});
 																	}}
@@ -433,13 +550,13 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 											<FormItem>
 												<FormLabel>Examples</FormLabel>
 												<div className="space-y-2">
-													{field.value?.map((_, index) => (
+													{((field.value || []) as string[]).map((example, index) => (
 														<div key={index} className="flex gap-2">
 															<FormControl>
 																<Textarea
-																	value={field.value[index]}
+																	value={example}
 																	onChange={(e) => {
-																		const newExamples = [...field.value];
+																		const newExamples = [...(field.value as string[] || [])];
 																		newExamples[index] = e.target.value;
 																		field.onChange(newExamples);
 																	}}
@@ -451,7 +568,7 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 																variant="destructive"
 																size="sm"
 																onClick={() => {
-																	const newExamples = field.value.filter((_, i) => i !== index);
+																	const newExamples = (field.value as string[]).filter((_, i) => i !== index);
 																	field.onChange(newExamples);
 																}}
 															>
@@ -477,15 +594,33 @@ export function ActivityCreationForm({ onSubmit, onCancel, initialValues }: Acti
 							</div>
 						)}
 
+						<FormField
+						  control={form.control}
+						  name="deadline"
+						  render={({ field }) => (
+							<FormItem>
+							  <FormLabel>Deadline</FormLabel>
+							  <FormControl>
+								<Input 
+									type="date" 
+									{...field}
+								/>
+							  </FormControl>
+							  <FormMessage />
+							</FormItem>
+						  )}
+						/>
+
+
 						<div className="flex justify-end space-x-2">
-							<Button type="button" variant="outline" onClick={onCancel}>
-								Cancel
-							</Button>
-							<Button type="submit">Create Activity</Button>
+						  <Button type="button" variant="outline" onClick={onClose}>
+							Cancel
+						  </Button>
+						  <Button type="submit">
+							{activityId ? 'Update' : 'Create'} Activity
+						  </Button>
 						</div>
-					</form>
-				</Form>
-			</CardContent>
-		</Card>
-	);
-}
+					  </form>
+					</Form>
+				  );
+				}

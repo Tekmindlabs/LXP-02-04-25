@@ -3,7 +3,8 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { courseService } from "../../../lib/course-management/course-service";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@prisma/client";
-import type { CourseStructure, TeacherAssignment, ClassActivity } from "@/types/course-management";
+import type { CourseStructure, TeacherAssignment } from "@/types/course-management";
+import type { ActivityType, ActivityStatus, ClassActivity } from "@/types/class-activity";
 
 const courseSettingsSchema = z.object({
 	allowLateSubmissions: z.boolean(),
@@ -237,9 +238,9 @@ export const courseRouter = createTRPCRouter({
 						type: string;
 						title: string;
 						description: string;
-						dueDate: Date | null;
-						points: number | null;
+						deadline: Date | null;
 						status: string;
+
 					}[];
 				}) => ({
 					id: subject.id,
@@ -259,13 +260,19 @@ export const courseRouter = createTRPCRouter({
 					})) satisfies TeacherAssignment[],
 					activities: subject.activities.map((activity) => ({
 						id: activity.id,
-						type: activity.type as 'ASSIGNMENT' | 'QUIZ' | 'PROJECT' | 'DISCUSSION' | 'EXAM',
+						type: activity.type as ActivityType,
 						title: activity.title,
-						description: activity.description,
-						dueDate: activity.dueDate || undefined,
-						points: activity.points || undefined,
-						status: activity.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+						description: activity.description || '',
+						deadline: activity.deadline || undefined,
+						status: activity.status as ActivityStatus,
+						classId: activity.classId || undefined,
+						classGroupId: activity.classGroupId || undefined,
+						gradingCriteria: activity.gradingCriteria || undefined,
+						configuration: activity.configuration,
+						createdAt: activity.createdAt,
+						updatedAt: activity.updatedAt
 					})) satisfies ClassActivity[]
+
 				})),
 				academicYear: course.academicYear,
 				classGroupId: course.classGroups[0]?.id || '',

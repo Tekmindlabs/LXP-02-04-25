@@ -20,8 +20,7 @@ export async function seedActivities(prisma: PrismaClient, params: ActivityParam
 		update: {
 			description: 'First quarter math assessment',
 			type: 'QUIZ',
-			dueDate: new Date('2024-09-15'),
-			points: 100,
+			deadline: new Date('2024-09-15'),
 			status: 'PUBLISHED',
 			subjectId: params.subjects[0].id
 		},
@@ -30,8 +29,7 @@ export async function seedActivities(prisma: PrismaClient, params: ActivityParam
 			description: 'First quarter math assessment',
 			type: 'QUIZ',
 			classId: params.classes[0].id,
-			dueDate: new Date('2024-09-15'),
-			points: 100,
+			deadline: new Date('2024-09-15'),
 			status: 'PUBLISHED',
 			subjectId: params.subjects[0].id
 		}
@@ -68,8 +66,7 @@ export async function seedActivities(prisma: PrismaClient, params: ActivityParam
 		update: {
 			description: 'Group research project',
 			type: 'PROJECT',
-			dueDate: new Date('2024-10-30'),
-			points: 200,
+			deadline: new Date('2024-10-30'),
 			status: 'PUBLISHED',
 			subjectId: params.subjects[1].id
 		},
@@ -78,8 +75,7 @@ export async function seedActivities(prisma: PrismaClient, params: ActivityParam
 			description: 'Group research project',
 			type: 'PROJECT',
 			classId: params.classes[0].id,
-			dueDate: new Date('2024-10-30'),
-			points: 200,
+			deadline: new Date('2024-10-30'),
 			status: 'PUBLISHED',
 			subjectId: params.subjects[1].id
 		}
@@ -125,26 +121,26 @@ export async function seedActivities(prisma: PrismaClient, params: ActivityParam
 		})
 	]);
 
-	// Add student assignments
+	// Add student activity submissions
 	const students = await prisma.studentProfile.findMany();
 	if (students.length > 0) {
-		console.log('Creating student assignments...');
+		console.log('Creating activity submissions...');
 		await Promise.all(
 			students.map(student =>
-				prisma.studentActivity.upsert({
+				prisma.activitySubmission.upsert({
 					where: {
-						studentId_activityId: {
-							studentId: student.id,
-							activityId: mathQuiz.id
-						}
+						id: `${student.id}-${mathQuiz.id}` // Using a composite ID
 					},
 					update: {
-						status: 'PENDING'
+						status: 'SUBMITTED',
+						content: {}
 					},
 					create: {
-						studentId: student.id,
+						id: `${student.id}-${mathQuiz.id}`,
+						studentId: student.userId, // Note: using userId from student profile
 						activityId: mathQuiz.id,
-						status: 'PENDING'
+						status: 'SUBMITTED',
+						content: {}
 					}
 				})
 			)

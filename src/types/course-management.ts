@@ -95,10 +95,10 @@ export interface ClassActivity {
 	type: 'ASSIGNMENT' | 'QUIZ' | 'PROJECT' | 'DISCUSSION' | 'EXAM';
 	title: string;
 	description: string;
-	dueDate?: Date;
-	points?: number;
+	deadline?: Date;
 	status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 }
+
 
 // Progress Tracking
 export interface ProgressTracking {

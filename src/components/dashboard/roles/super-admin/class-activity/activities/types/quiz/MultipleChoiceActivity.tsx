@@ -19,13 +19,13 @@ export function MultipleChoiceActivity({ config, viewType, onSubmit }: MultipleC
 	const handleSubmit = () => {
 		if (viewType === 'STUDENT') {
 			const score = config.questions.reduce((total, q, idx) => {
-				return total + (q.correctAnswer === selectedAnswers[idx] ? q.points : 0);
-			}, 0);
+				return total + (q.correctAnswer === selectedAnswers[idx] ? 1 : 0);
+			}, 0) / config.questions.length * 100;
 			
 			onSubmit?.({
 				answers: selectedAnswers,
 				score,
-				totalPoints: config.totalPoints || config.questions.reduce((sum, q) => sum + q.points, 0)
+				totalPoints: 100
 			});
 		}
 	};
@@ -35,9 +35,9 @@ export function MultipleChoiceActivity({ config, viewType, onSubmit }: MultipleC
 			{config.questions.map((question, qIdx) => (
 				<Card key={qIdx} className="p-6">
 					<div className="space-y-4">
-						<div className="flex justify-between">
+						<div className="flex justify-between items-center mb-4">
 							<h3 className="font-medium">{question.text}</h3>
-							<span className="text-sm text-muted-foreground">Points: {question.points}</span>
+							<span className="text-sm text-muted-foreground">Question {qIdx + 1}</span>
 						</div>
 						<RadioGroup
 							value={selectedAnswers[qIdx]?.toString()}

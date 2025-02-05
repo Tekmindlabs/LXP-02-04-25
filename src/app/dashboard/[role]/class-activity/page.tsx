@@ -2,46 +2,14 @@
 
 import { useState } from "react";
 import { ActivityTemplate, ActivityType, ClassActivity } from "@/types/class-activity";
-import { ActivityTemplateSelector } from "@/components/dashboard/activities/ActivityTemplateSelector";
-import { ActivityCreationForm } from "@/components/dashboard/activities/ActivityCreationForm";
-import { ActivityList } from "@/components/dashboard/activities/ActivityList";
+import { ActivityTemplateSelector } from "@/components/dashboard/roles/super-admin/class-activity/activities/ActivityTemplateSelector";
+import { ActivityCreationForm } from "@/components/dashboard/roles/super-admin/class-activity/activities/ActivityCreationForm";
+import { ActivityList } from "@/components/dashboard/roles/super-admin/class-activity/activities/ActivityList";
 import { Button } from "@/components/ui/button";
+import { sampleTemplates } from "@/data/sample-data";
 
-// Sample templates - replace with API call in production
-const sampleTemplates: ActivityTemplate[] = [
-	{
-		id: "1",
-		type: "QUIZ_MULTIPLE_CHOICE",
-		title: "Basic Multiple Choice Quiz",
-		description: "Standard multiple choice quiz template with customizable options",
-		configuration: {
-			timeLimit: 1800,
-			attempts: 2,
-			passingScore: 70,
-		}
-	},
-	{
-		id: "2",
-		type: "GAME_WORD_SEARCH",
-		title: "Vocabulary Word Search",
-		description: "Interactive word search game for vocabulary practice",
-		configuration: {
-			timeLimit: 900,
-			attempts: 3,
-		}
-	},
-	{
-		id: "3",
-		type: "QUIZ_FILL_BLANKS",
-		title: "Fill in the Blanks Exercise",
-		description: "Text completion exercise with blank spaces",
-		configuration: {
-			timeLimit: 1200,
-			attempts: 2,
-			passingScore: 80,
-		}
-	}
-];
+
+
 
 // Sample activities - replace with API call in production
 const sampleActivities: ClassActivity[] = [
@@ -55,6 +23,9 @@ const sampleActivities: ClassActivity[] = [
 			timeLimit: 1800,
 			attempts: 2,
 			passingScore: 70,
+			isGraded: true,
+			gradingType: "AUTOMATIC",
+			viewType: "STUDENT"
 		},
 		createdAt: new Date(),
 		updatedAt: new Date(),
@@ -67,6 +38,9 @@ const sampleActivities: ClassActivity[] = [
 		configuration: {
 			timeLimit: 900,
 			attempts: 3,
+			isGraded: false,
+			gradingType: "NONE",
+			viewType: "STUDENT"
 		},
 		createdAt: new Date(),
 		updatedAt: new Date(),
@@ -79,7 +53,18 @@ export default function ClassActivityPage() {
 	const [activities, setActivities] = useState<ClassActivity[]>(sampleActivities);
 
 	const handleTemplateSelect = (template: ActivityTemplate) => {
-		setSelectedTemplate(template);
+		setSelectedTemplate({
+			id: template.id,
+			type: template.type,
+			title: template.title,
+			description: template.description,
+			configuration: {
+				...template.configuration,
+				isGraded: false,
+				gradingType: "NONE",
+				viewType: "STUDENT"
+			}
+		});
 		setIsCreating(true);
 	};
 
@@ -103,6 +88,9 @@ export default function ClassActivityPage() {
 				attempts: values.attempts,
 				passingScore: values.passingScore,
 				instructions: values.instructions,
+				isGraded: values.configuration?.isGraded || false,
+				gradingType: values.configuration?.gradingType || "NONE",
+				viewType: values.configuration?.viewType || "STUDENT"
 			},
 			createdAt: new Date(),
 			updatedAt: new Date(),
@@ -134,12 +122,13 @@ export default function ClassActivityPage() {
 					<ActivityCreationForm
 						template={selectedTemplate}
 						onSubmit={handleSubmit}
-						onCancel={handleCancel}
+						onClose={handleCancel}
 					/>
 				) : (
 					<ActivityTemplateSelector
+						onSelect={handleTemplateSelect}
+						onClose={() => setIsCreating(false)}
 						templates={sampleTemplates}
-						onTemplateSelect={handleTemplateSelect}
 					/>
 				)
 			) : (

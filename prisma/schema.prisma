@@ -456,6 +456,7 @@ model ActivitySubmission {
   activity    ClassActivity @relation(fields: [activityId], references: [id])
   student     User         @relation("StudentSubmissions", fields: [studentId], references: [id])
 
+  @@unique([activityId, studentId])
   @@index([activityId])
   @@index([studentId])
 }

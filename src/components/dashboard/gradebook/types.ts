@@ -24,8 +24,7 @@ export interface ActivitySubmission {
 export interface Activity {
 	id: string;
 	title: string;
-	dueDate: Date | null;
-	points: number | null;
+	deadline: Date | null;
 	submissions: ActivitySubmission[];
 }
 
@@ -33,8 +32,8 @@ export interface ActivityGrade {
 	activityId: string;
 	activityName: string;
 	grade: number;
-	totalPoints: number;
 }
+
 
 export interface StudentGrade {
 	studentId: string;

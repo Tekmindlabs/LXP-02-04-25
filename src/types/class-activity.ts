@@ -37,9 +37,12 @@ export interface ActivityConfiguration {
 	availabilityDate?: Date;
 	deadline?: Date;
 	isGraded: boolean;
-	totalPoints?: number;
 	gradingType: 'AUTOMATIC' | 'MANUAL' | 'NONE';
 	viewType: 'PREVIEW' | 'STUDENT' | 'CONFIGURATION';
+	totalPoints?: number;
+	autoplay?: boolean;
+	showControls?: boolean;
+	showExamples?: boolean;
 }
 
 export interface ActivitySubmission {
@@ -65,8 +68,8 @@ export interface MultipleChoiceConfig extends ActivityConfiguration {
 		text: string;
 		options: string[];
 		correctAnswer: number;
-		points: number;
 	}[];
+
 }
 
 export interface DragDropConfig extends ActivityConfiguration {
