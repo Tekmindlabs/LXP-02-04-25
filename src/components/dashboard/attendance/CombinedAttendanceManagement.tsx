@@ -4,6 +4,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSwipeable } from 'react-swipeable';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/utils/api';
@@ -28,7 +29,7 @@ export const CombinedAttendanceManagement = () => {
   const { data: session, status: sessionStatus } = useSession();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] = useState<string>("no-class-selected");
   const [activeTab, setActiveTab] = useState<string>('quick');
   const [attendanceData, setAttendanceData] = useState<Map<string, AttendanceStatus>>(new Map());
 
@@ -158,31 +159,35 @@ export const CombinedAttendanceManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-2">Select Class</label>
-              <select
-                className="w-full p-2 border rounded"
-                onChange={(e) => setSelectedClass(e.target.value)}
-                value={selectedClass || ''}
-              >
-                <option value="">Select a class</option>
-                {!session?.user ? (
-                  <option value="" disabled>Please sign in</option>
-                ) : !isAdmin && !isTeacher ? (
-                  <option value="" disabled>Unauthorized access</option>
-                ) : classError ? (
-                  <option value="" disabled>Error loading classes</option>
-                ) : classes ? (
-                  classes.length > 0 ? (
-                  classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>{cls.name}</option>
-                  ))
+                <Select
+                  value={selectedClass || "no-class-selected"}
+                  onValueChange={setSelectedClass}
+                >
+                  <SelectTrigger>
+                  <SelectValue placeholder="Select a class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                  {!session?.user ? (
+                    <SelectItem value="not-signed-in" disabled>Please sign in</SelectItem>
+                  ) : !isAdmin && !isTeacher ? (
+                    <SelectItem value="unauthorized" disabled>Unauthorized access</SelectItem>
+                  ) : classError ? (
+                    <SelectItem value="error-loading" disabled>Error loading classes</SelectItem>
+                  ) : classes ? (
+                    classes.length > 0 ? (
+                    classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                      </SelectItem>
+                    ))
+                    ) : (
+                    <SelectItem value="no-classes" disabled>No classes found</SelectItem>
+                    )
                   ) : (
-                  <option value="" disabled>No classes found</option>
-                  )
-                ) : (
-                  <option value="" disabled>Loading classes...</option>
-                )}
-
-              </select>
+                    <SelectItem value="loading" disabled>Loading classes...</SelectItem>
+                  )}
+                  </SelectContent>
+                </Select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Date</label>
@@ -254,16 +259,22 @@ export const CombinedAttendanceManagement = () => {
                       <tr key={student.id}>
                         <td className="p-2">{student.user.name}</td>
                         <td className="p-2">
-                          <select
-                            className="w-full p-2 border rounded"
-                            value={attendanceData.get(student.id) || ''}
-                            onChange={(e) => markAttendance(student.id, e.target.value as AttendanceStatus)}
-                          >
-                            <option value="">Select status</option>
-                            {Object.values(AttendanceStatus).map(status => (
-                              <option key={status} value={status}>{status}</option>
-                            ))}
-                          </select>
+                            <Select
+                              value={attendanceData.get(student.id) || 'not-marked'}
+                              onValueChange={(value) => markAttendance(student.id, value as AttendanceStatus)}
+                            >
+                              <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                              <SelectItem value="not-marked">Not Marked</SelectItem>
+                              {Object.values(AttendanceStatus).map(status => (
+                                <SelectItem key={status} value={status}>
+                                {status}
+                                </SelectItem>
+                              ))}
+                              </SelectContent>
+                            </Select>
                         </td>
                         <td className="p-2">
                           <input

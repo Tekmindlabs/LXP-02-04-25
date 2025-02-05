@@ -120,8 +120,9 @@ export const CourseUpdate = ({ course, onUpdate }: CourseUpdateProps) => {
 				<div>
 					<label className="block text-sm font-medium mb-1">Class Group</label>
 					<Select
-						value={courseData.classGroupId}
+						value={courseData.classGroupId || 'no-selection'}
 						onValueChange={(value) => {
+							if (value === 'no-selection') return;
 							const selectedGroup = classGroups?.find(group => group.id === value);
 							setCourseData(prev => ({
 								...prev,
@@ -134,12 +135,14 @@ export const CourseUpdate = ({ course, onUpdate }: CourseUpdateProps) => {
 							<SelectValue placeholder="Select Class Group" />
 						</SelectTrigger>
 						<SelectContent>
-							{classGroups?.map((group) => (
+							<SelectItem value="no-selection">Select a class group</SelectItem>
+							{classGroups && classGroups.length > 0 && classGroups.map((group) => (
 								<SelectItem key={group.id} value={group.id}>
-									{group.name}
+									{group.name || 'Unnamed Group'}
 								</SelectItem>
 							))}
 						</SelectContent>
+
 					</Select>
 				</div>
 

@@ -22,7 +22,7 @@ interface CourseViewerProps {
 
 export const CourseViewer = ({ course, onUpdate }: CourseViewerProps) => {
 	const [isEditMode, setIsEditMode] = useState(false);
-	const [activeSubject, setActiveSubject] = useState<Subject>(course.subjects[0]);
+	const [activeSubject, setActiveSubject] = useState<Subject>(course.subjects[0] || null);
 
 	const renderContent = (content: ContentBlock) => (
 		<div key={content.id} className="p-3 bg-gray-50 rounded-lg mb-2">
@@ -105,7 +105,7 @@ export const CourseViewer = ({ course, onUpdate }: CourseViewerProps) => {
 			{/* Mobile Subject Selector */}
 			<div className="md:hidden">
 				<Select
-					value={activeSubject?.id}
+					value={activeSubject?.id || course.subjects[0]?.id}
 					onValueChange={(value) => {
 						const subject = course.subjects.find(s => s.id === value);
 						if (subject) setActiveSubject(subject);

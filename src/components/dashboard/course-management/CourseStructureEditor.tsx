@@ -5,7 +5,7 @@ import { CourseStructure, ContentBlock, ChapterUnit, BlockUnit, WeeklyUnit } fro
 import { Button } from '../../ui/button';
 import { Textarea } from '../../ui/textarea';
 import { Card } from '../../ui/card';
-import { Select } from '../../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import {
 	DndContext,
 	DragOverlay,
@@ -200,10 +200,15 @@ export const CourseStructureEditor = ({ initialStructure, onSave }: CourseStruct
 				value={currentContent.type}
 				onValueChange={(value) => setCurrentContent(prev => ({ ...prev, type: value as ContentBlock['type'] }))}
 			>
-				<option value="TEXT">Text</option>
-				<option value="VIDEO">Video</option>
-				<option value="QUIZ">Quiz</option>
-				<option value="ASSIGNMENT">Assignment</option>
+				<SelectTrigger>
+					<SelectValue placeholder="Select content type" />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="TEXT">Text</SelectItem>
+					<SelectItem value="VIDEO">Video</SelectItem>
+					<SelectItem value="QUIZ">Quiz</SelectItem>
+					<SelectItem value="ASSIGNMENT">Assignment</SelectItem>
+				</SelectContent>
 			</Select>
 			<Textarea
 				value={currentContent.content}

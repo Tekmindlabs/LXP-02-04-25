@@ -28,7 +28,7 @@ export const CourseBuilder = ({ onCourseCreated }: CourseBuilderProps) => {
 		name: '',
 		description: '',
 		courseStructure: {
-			type: 'CHAPTER',
+			type: 'CHAPTER' as CourseStructureType,
 			units: []
 		}
 	});
@@ -147,7 +147,7 @@ export const CourseBuilder = ({ onCourseCreated }: CourseBuilderProps) => {
 					<div>
 						<label className="block text-sm font-medium mb-1">Class Group</label>
 						<Select
-							value={courseData.classGroupId}
+							value={courseData.classGroupId || (classGroups?.[0]?.id ?? '')}
 							onValueChange={(value) => {
 								setCourseData(prev => ({
 									...prev,
@@ -182,7 +182,7 @@ export const CourseBuilder = ({ onCourseCreated }: CourseBuilderProps) => {
 								placeholder="Subject description"
 							/>
 							<Select
-								value={currentSubject.courseStructure?.type}
+								value={currentSubject.courseStructure?.type || 'CHAPTER'}
 								onValueChange={(value: CourseStructureType) => 
 									setCurrentSubject(prev => ({
 										...prev,

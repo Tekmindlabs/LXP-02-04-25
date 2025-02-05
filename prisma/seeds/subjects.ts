@@ -7,40 +7,52 @@ export async function seedSubjects(prisma: PrismaClient, classGroups: ClassGroup
 	const subjects = await Promise.all([
 		prisma.subject.upsert({
 			where: { code: 'MATH101' },
-			update: {},
+			update: {
+				classGroups: {
+					connect: classGroups.map(cg => ({ id: cg.id }))
+				}
+			},
 			create: {
 				name: 'Mathematics',
 				code: 'MATH101',
 				description: 'Basic Mathematics',
 				status: Status.ACTIVE,
 				classGroups: {
-					connect: [{ id: classGroups[0].id }]
+					connect: classGroups.map(cg => ({ id: cg.id }))
 				}
 			}
 		}),
 		prisma.subject.upsert({
 			where: { code: 'SCI101' },
-			update: {},
+			update: {
+				classGroups: {
+					connect: classGroups.map(cg => ({ id: cg.id }))
+				}
+			},
 			create: {
 				name: 'Science',
 				code: 'SCI101',
 				description: 'General Science',
 				status: Status.ACTIVE,
 				classGroups: {
-					connect: [{ id: classGroups[0].id }]
+					connect: classGroups.map(cg => ({ id: cg.id }))
 				}
 			}
 		}),
 		prisma.subject.upsert({
 			where: { code: 'ENG101' },
-			update: {},
+			update: {
+				classGroups: {
+					connect: classGroups.map(cg => ({ id: cg.id }))
+				}
+			},
 			create: {
 				name: 'English',
 				code: 'ENG101',
 				description: 'English Language Arts',
 				status: Status.ACTIVE,
 				classGroups: {
-					connect: [{ id: classGroups[0].id }]
+					connect: classGroups.map(cg => ({ id: cg.id }))
 				}
 			}
 		})

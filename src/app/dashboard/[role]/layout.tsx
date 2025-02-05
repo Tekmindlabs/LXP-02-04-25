@@ -176,7 +176,7 @@ export default async function RoleLayout({
 	params: { role: string };
 }) {
 	const session = await getServerAuthSession();
-	const roleParam = params.role;
+	const roleParam = await Promise.resolve(params.role);
 
 	if (!session) {
 		redirect("/auth/signin");

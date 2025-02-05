@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import NotificationList from "./NotificationList";
 import CreateNotification from "./CreateNotification";
@@ -55,12 +55,17 @@ export default function NotificationDashboard() {
 									value={type || "all"}
 									onValueChange={(value) => setType(value === "all" ? undefined : value as any)}
 								>
-									<option value="all">All Types</option>
-									<option value="ANNOUNCEMENT">Announcements</option>
-									<option value="ASSIGNMENT">Assignments</option>
-									<option value="GRADE">Grades</option>
-									<option value="REMINDER">Reminders</option>
-									<option value="SYSTEM">System</option>
+									<SelectTrigger>
+										<SelectValue placeholder="Filter by type" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="all">All Types</SelectItem>
+										<SelectItem value="ANNOUNCEMENT">Announcements</SelectItem>
+										<SelectItem value="ASSIGNMENT">Assignments</SelectItem>
+										<SelectItem value="GRADE">Grades</SelectItem>
+										<SelectItem value="REMINDER">Reminders</SelectItem>
+										<SelectItem value="SYSTEM">System</SelectItem>
+									</SelectContent>
 								</Select>
 							</div>
 

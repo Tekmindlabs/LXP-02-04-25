@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { Status } from "@prisma/client";
 import { format } from "date-fns";
@@ -107,18 +108,21 @@ export const TermManager = ({ calendarId }: { calendarId: string }) => {
 							</div>
 							<div>
 								<Label htmlFor="status">Status</Label>
-								<select
-									id="status"
+								<Select
 									value={formData.status}
-									onChange={(e) => setFormData({ ...formData, status: e.target.value as Status })}
-									className="w-full border p-2 rounded"
+									onValueChange={(value) => setFormData({ ...formData, status: value as Status })}
 								>
-									{Object.values(Status).map((status) => (
-										<option key={status} value={status}>
-											{status}
-										</option>
-									))}
-								</select>
+									<SelectTrigger>
+										<SelectValue placeholder="Select status" />
+									</SelectTrigger>
+									<SelectContent>
+										{Object.values(Status).map((status) => (
+											<SelectItem key={status} value={status}>
+												{status}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 							<Button type="submit">Create Term</Button>
 						</form>

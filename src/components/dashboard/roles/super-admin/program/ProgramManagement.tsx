@@ -94,14 +94,14 @@ const associateCalendar = api.program.associateCalendar.useMutation({
                                 </SelectContent>
                             </Select>
 <Select
-	value={filters.calendarId}
-	onValueChange={(value) => setFilters({ ...filters, calendarId: value })}
+	value={filters.calendarId || "all-calendars"}
+	onValueChange={(value) => setFilters({ ...filters, calendarId: value === "all-calendars" ? undefined : value })}
 >
 	<SelectTrigger className="w-[200px]">
 		<SelectValue placeholder="Filter by Calendar" />
 	</SelectTrigger>
 	<SelectContent>
-		<SelectItem value="">All Calendars</SelectItem>
+		<SelectItem value="all-calendars">All Calendars</SelectItem>
 		{calendars?.map((calendar) => (
 			<SelectItem key={calendar.id} value={calendar.id}>
 				{calendar.name}

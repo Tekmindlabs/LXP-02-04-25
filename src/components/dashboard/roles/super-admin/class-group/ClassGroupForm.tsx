@@ -42,12 +42,12 @@ export const ClassGroupForm = ({ selectedClassGroup, programs, onSuccess }: Clas
 	const [formData, setFormData] = useState<ClassGroupFormData>(() => ({
 		name: selectedClassGroup?.name || "",
 		description: selectedClassGroup?.description || "",
-		programId: selectedClassGroup?.programId || "none",
+		programId: selectedClassGroup?.programId || "no-program",
 		status: selectedClassGroup?.status || Status.ACTIVE,
 		course: {
 			name: selectedClassGroup?.course?.name || "",
 			isTemplate: selectedClassGroup?.course?.isTemplate || false,
-			templateId: selectedClassGroup?.course?.parentCourseId || undefined,
+			templateId: selectedClassGroup?.course?.parentCourseId || "no-template",
 			subjects: selectedClassGroup?.course?.subjects?.map((s: any) => s.id) || [],
 			settings: selectedClassGroup?.course?.settings || {
 				allowLateSubmissions: true,
@@ -56,7 +56,7 @@ export const ClassGroupForm = ({ selectedClassGroup, programs, onSuccess }: Clas
 			},
 		},
 		calendar: {
-			id: selectedClassGroup?.calendar?.id || "none",
+			id: selectedClassGroup?.calendar?.id || "no-calendar",
 			inheritSettings: selectedClassGroup?.calendar?.inheritSettings || true,
 		},
 	}));
@@ -107,12 +107,12 @@ export const ClassGroupForm = ({ selectedClassGroup, programs, onSuccess }: Clas
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (formData.programId === "none") {
+		if (formData.programId === "no-program") {
 			alert("Please select a program");
 			return;
 		}
 
-		if (formData.calendar.id === "none") {
+		if (formData.calendar.id === "no-calendar") {
 			alert("Please select a calendar");
 			return;
 		}
@@ -166,7 +166,7 @@ export const ClassGroupForm = ({ selectedClassGroup, programs, onSuccess }: Clas
 						<SelectValue placeholder="Select Program" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="none">Select Program</SelectItem>
+						<SelectItem value="no-program">Select Program</SelectItem>
 						{programs.map((program) => (
 							<SelectItem key={program.id} value={program.id}>
 								{program.name}
@@ -218,7 +218,7 @@ export const ClassGroupForm = ({ selectedClassGroup, programs, onSuccess }: Clas
 								<SelectValue placeholder="Select Template" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="">No Template</SelectItem>
+								<SelectItem value="no-template">No Template</SelectItem>
 								{courseTemplates?.map((template) => (
 									<SelectItem key={template.id} value={template.id}>
 										{template.name}
@@ -331,7 +331,7 @@ export const ClassGroupForm = ({ selectedClassGroup, programs, onSuccess }: Clas
 							<SelectValue placeholder="Select Calendar" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="none">Select Calendar</SelectItem>
+							<SelectItem value="no-calendar">Select Calendar</SelectItem>
 							{calendars?.map((calendar) => (
 								<SelectItem key={calendar.id} value={calendar.id}>
 									{calendar.name}

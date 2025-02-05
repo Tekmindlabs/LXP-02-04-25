@@ -39,8 +39,8 @@ export const CourseList = ({ courses = [], onSelect, isLoading = false }: Course
 	}
 
 	const [searchTerm, setSearchTerm] = useState('');
-	const [classGroupFilter, setClassGroupFilter] = useState('all');
-	const [yearFilter, setYearFilter] = useState('all');
+	const [classGroupFilter, setClassGroupFilter] = useState<string>('all');
+	const [yearFilter, setYearFilter] = useState<string>('all');
 
 	// Get unique class groups and years for filters
 	const uniqueClassGroups = Array.from(new Set(courses.map(course => course.classGroupId)));
@@ -63,7 +63,7 @@ export const CourseList = ({ courses = [], onSelect, isLoading = false }: Course
 				/>
 				<Select 
 					key="class-group-select"
-					value={classGroupFilter} 
+					value={classGroupFilter || 'all'} 
 					onValueChange={setClassGroupFilter}
 				>
 					<SelectTrigger>
@@ -80,7 +80,7 @@ export const CourseList = ({ courses = [], onSelect, isLoading = false }: Course
 				</Select>
 				<Select 
 					key="year-select"
-					value={yearFilter} 
+					value={yearFilter || 'all'} 
 					onValueChange={setYearFilter}
 				>
 					<SelectTrigger>

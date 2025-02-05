@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
-import { Select } from '../../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { toast } from '../../ui/use-toast';
 
 interface Program {
@@ -102,15 +102,24 @@ export const ProgramAssignment = () => {
 								</div>
 								<div className="flex items-center gap-2">
 									<Select
-										value={program.coordinatorId || ''}
-										onValueChange={(value) => handleAssignCoordinator(program.id, value)}
+										value={program.coordinatorId || 'unassigned'}
+										onValueChange={(value) => {
+											if (value !== 'unassigned') {
+												handleAssignCoordinator(program.id, value);
+											}
+										}}
 									>
-										<option value="">Select Coordinator</option>
-										{coordinators.map(coordinator => (
-											<option key={coordinator.id} value={coordinator.id}>
-												{coordinator.user.name}
-											</option>
-										))}
+										<SelectTrigger>
+											<SelectValue placeholder="Select Coordinator" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="unassigned">Select Coordinator</SelectItem>
+											{coordinators.map(coordinator => (
+												<SelectItem key={coordinator.id} value={coordinator.id}>
+													{coordinator.user.name}
+												</SelectItem>
+											))}
+										</SelectContent>
 									</Select>
 								</div>
 							</div>

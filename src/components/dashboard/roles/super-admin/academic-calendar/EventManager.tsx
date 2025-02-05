@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/trpc/react";
 import { useToast } from "@/hooks/use-toast";
@@ -99,19 +100,21 @@ export const EventManager = ({ filteredEvents }: EventManagerProps) => {
 						</div>
 						<div>
 							<Label htmlFor="eventType">Event Type</Label>
-							<select
-								id="eventType"
+							<Select
 								value={formData.eventType}
-								onChange={(e) => setFormData({ ...formData, eventType: e.target.value as EventType })}
-								className="w-full border p-2 rounded"
-								required
+								onValueChange={(value) => setFormData({ ...formData, eventType: value as EventType })}
 							>
-								{Object.values(EventType).map((type) => (
-									<option key={type} value={type}>
-										{type}
-									</option>
-								))}
-							</select>
+								<SelectTrigger>
+									<SelectValue placeholder="Select event type" />
+								</SelectTrigger>
+								<SelectContent>
+									{Object.values(EventType).map((type) => (
+										<SelectItem key={type} value={type}>
+											{type}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 						<div>
 							<Label htmlFor="startDate">Start Date</Label>
