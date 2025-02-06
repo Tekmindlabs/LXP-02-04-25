@@ -1,25 +1,52 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
+import type { TimeZone, InstituteSettingsType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/utils/api";
 
 export function InstituteSettings() {
-	const [settings, setSettings] = useState({
+	const [settings, setSettings] = useState<InstituteSettingsType>({
 		name: "",
 		address: "",
 		phone: "",
 		email: "",
 		website: "",
 		timezone: "UTC",
-		academicYearStart: "",
-		academicYearEnd: "",
+		academicYearStart: new Date(),
+		academicYearEnd: new Date(),
+		id: 0,
+		logo: null,
+		createdAt: new Date(),
+		updatedAt: new Date(),
 	});
 
 	const { toast } = useToast();
 	const utils = api.useContext();
+
+	const { data: instituteSettings } = api.settings.getInstituteSettings.useQuery(undefined, {
+		refetchOnWindowFocus: false,
+	});
+
+	useEffect(() => {
+		if (instituteSettings && instituteSettings.id !== settings.id) {
+			setSettings({
+				...instituteSettings,
+				academicYearStart: new Date(instituteSettings.academicYearStart),
+				academicYearEnd: new Date(instituteSettings.academicYearEnd),
+				website: instituteSettings.website ?? "",
+				timezone: instituteSettings.timezone as TimeZone,
+			});
+		}
+	}, [instituteSettings, settings.id]);
+
+
+
 
 	const updateSettings = api.settings.updateInstituteSettings.useMutation({
 		onSuccess: () => {
@@ -29,11 +56,28 @@ export function InstituteSettings() {
 			});
 			utils.settings.getInstituteSettings.invalidate();
 		},
+		onError: (error) => {
+			toast({
+				title: "Error",
+				description: error.message,
+				variant: "destructive",
+			});
+		},
 	});
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		await updateSettings.mutateAsync(settings);
+		const dataToSubmit = {
+			name: settings.name,
+			address: settings.address,
+			phone: settings.phone,
+			email: settings.email,
+			website: settings.website || undefined,
+			timezone: settings.timezone,
+			academicYearStart: settings.academicYearStart.toISOString(),
+			academicYearEnd: settings.academicYearEnd.toISOString(),
+		};
+		await updateSettings.mutateAsync(dataToSubmit);
 	};
 
 	return (
@@ -88,9 +132,26 @@ export function InstituteSettings() {
 							<Input
 								id="website"
 								type="url"
-								value={settings.website}
+								value={settings.website ?? ""}
 								onChange={(e) => setSettings({ ...settings, website: e.target.value })}
 							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="timezone">Timezone</Label>
+							<Select
+								value={settings.timezone}
+								onValueChange={(value: TimeZone) => setSettings({ ...settings, timezone: value })}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder="Select timezone" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="UTC">UTC</SelectItem>
+									<SelectItem value="GMT">GMT</SelectItem>
+									<SelectItem value="EST">EST</SelectItem>
+									<SelectItem value="PST">PST</SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
 					</CardContent>
 				</Card>
@@ -106,8 +167,8 @@ export function InstituteSettings() {
 								<Input
 									id="academicYearStart"
 									type="date"
-									value={settings.academicYearStart}
-									onChange={(e) => setSettings({ ...settings, academicYearStart: e.target.value })}
+									value={settings.academicYearStart.toISOString().split('T')[0]}
+									onChange={(e) => setSettings({ ...settings, academicYearStart: new Date(e.target.value) })}
 									required
 								/>
 							</div>
@@ -116,8 +177,8 @@ export function InstituteSettings() {
 								<Input
 									id="academicYearEnd"
 									type="date"
-									value={settings.academicYearEnd}
-									onChange={(e) => setSettings({ ...settings, academicYearEnd: e.target.value })}
+									value={settings.academicYearEnd.toISOString().split('T')[0]}
+									onChange={(e) => setSettings({ ...settings, academicYearEnd: new Date(e.target.value) })}
 									required
 								/>
 							</div>

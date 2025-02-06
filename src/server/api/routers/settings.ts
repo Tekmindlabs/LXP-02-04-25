@@ -41,10 +41,14 @@ const instituteSettingsSchema = z.object({
 	address: z.string(),
 	phone: z.string(),
 	email: z.string().email(),
-	website: z.string().url().optional(),
-	timezone: z.string(),
-	academicYearStart: z.string(),
-	academicYearEnd: z.string(),
+	website: z.string().url().optional().or(z.literal("")),
+	timezone: z.enum(["UTC", "GMT", "EST", "PST"]),
+	academicYearStart: z.string()
+		.refine(str => !isNaN(Date.parse(str)), "Invalid date format")
+		.transform(str => new Date(str)),
+	academicYearEnd: z.string()
+		.refine(str => !isNaN(Date.parse(str)), "Invalid date format")
+		.transform(str => new Date(str)),
 });
 
 const brandingSettingsSchema = z.object({
@@ -77,22 +81,56 @@ export const settingsRouter = createTRPCRouter({
 		}),
 
 	getInstituteSettings: protectedProcedure.query(async ({ ctx }) => {
-		return ctx.prisma.instituteSettings.findFirst({
+		const settings = await ctx.prisma.instituteSettings.findFirst({
 			where: { id: 1 },
 		});
+
+		if (!settings) {
+			const defaultSettings = {
+				id: 1,
+				name: "",
+				address: "",
+				phone: "",
+				email: "",
+				website: null,
+				logo: null,
+				timezone: "UTC",
+				academicYearStart: new Date(),
+				academicYearEnd: new Date(new Date().getFullYear(), 11, 31), // December 31st of current year
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			};
+
+			// Create default settings
+			return ctx.prisma.instituteSettings.create({
+				data: defaultSettings,
+			});
+		}
+
+		return settings;
 	}),
 
 	updateInstituteSettings: protectedProcedure
 		.input(instituteSettingsSchema)
 		.mutation(async ({ ctx, input }) => {
-			return ctx.prisma.instituteSettings.upsert({
-				where: { id: 1 },
-				update: input,
-				create: {
-					...input,
-					id: 1,
-				},
-			});
+			try {
+				const { website, ...rest } = input;
+				return await ctx.prisma.instituteSettings.upsert({
+					where: { id: 1 },
+					update: {
+						...rest,
+						website: website || null,
+					},
+					create: {
+						...rest,
+						website: website || null,
+						id: 1,
+					},
+				});
+			} catch (error) {
+				console.error('Error updating institute settings:', error);
+				throw new Error("Failed to update institute settings. Please check your input values.");
+			}
 		}),
 
 	getBrandingSettings: protectedProcedure.query(async ({ ctx }) => {

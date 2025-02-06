@@ -1,32 +1,35 @@
+"use client";
+
 import { Building, Calendar, Palette, Settings } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-
-const navigationItems = [
-	{
-		title: "System Settings",
-		href: "/dashboard/settings/system",
-		icon: Settings,
-	},
-	{
-		title: "Institute Settings",
-		href: "/dashboard/settings/institute",
-		icon: Building,
-	},
-	{
-		title: "Branding & Design",
-		href: "/dashboard/settings/branding",
-		icon: Palette,
-	},
-	{
-		title: "Academic Year",
-		href: "/dashboard/settings/academic-year",
-		icon: Calendar,
-	},
-];
+import { useParams, usePathname } from "next/navigation";
 
 export function SettingsNavigation() {
 	const pathname = usePathname();
+	const { role } = useParams();
+
+	const navigationItems = [
+		{
+			title: "System Settings",
+			href: `/dashboard/${role}/settings/system`,
+			icon: Settings,
+		},
+		{
+			title: "Institute Settings",
+			href: `/dashboard/${role}/settings/institute`,
+			icon: Building,
+		},
+		{
+			title: "Branding & Design",
+			href: `/dashboard/${role}/settings/branding`,
+			icon: Palette,
+		},
+		{
+			title: "Academic Year",
+			href: `/dashboard/${role}/settings/academic-year`,
+			icon: Calendar,
+		},
+	];
 
 	return (
 		<nav className="space-y-2">

@@ -100,16 +100,17 @@ model AcademicYearSettings {
 }
 
 model AcademicYear {
-    id          String      @id @default(cuid())
-    name        String      @unique
-    startDate   DateTime
-    endDate     DateTime
-    status      Status      @default(ACTIVE)
-    calendars   Calendar[]
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
+  id          String      @id @default(cuid())
+  name        String      @unique
+  startDate   DateTime
+  endDate     DateTime
+  status      Status      @default(ACTIVE)
+  calendars   Calendar[]
+  termStructures ProgramTermStructure[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-    @@map("academic_years")
+  @@map("academic_years")
 }
 
 // Academic Structure
@@ -189,6 +190,7 @@ model Term {
   timetables     Timetable[]
   gradingPeriods GradingPeriod[]
   weeks          Week[]
+  academicTerms  AcademicTerm[]
 
   @@unique([name, calendarId])
 }
@@ -232,6 +234,7 @@ model Program {
   calendar      Calendar            @relation(fields: [calendarId], references: [id])
   calendarId    String
   classGroups   ClassGroup[]
+  termStructures ProgramTermStructure[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
@@ -250,6 +253,7 @@ model ClassGroup {
   subjects    Subject[]
   timetables  Timetable[]
   activities  ClassActivity[]
+  termSettings ClassGroupTermSettings[]
   status      Status          @default(ACTIVE)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
@@ -942,6 +946,62 @@ model BrandKit {
   @@map("brand_kits")
 }
 
+// Term Management Models
+model ProgramTermStructure {
+  id                String                   @id @default(uuid())
+  programId         String
+  program           Program                  @relation(fields: [programId], references: [id])
+  academicYearId    String
+  academicYear      AcademicYear            @relation(fields: [academicYearId], references: [id])
+  academicTerms     AcademicTerm[]
+  classGroupSettings ClassGroupTermSettings[]
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
+  @@map("program_term_structures")
+}
 
+model AcademicTerm {
+  id                String             @id @default(uuid())
+  name              String
+  startDate         DateTime
+  endDate           DateTime
+  type              String
+  programTermId     String
+  programTerm       ProgramTermStructure @relation(fields: [programTermId], references: [id])
+  calendarTerm      Term?              @relation(fields: [calendarTermId], references: [id])
+  calendarTermId    String?
+  assessmentPeriods TermAssessmentPeriod[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@map("academic_terms")
+}
+
+model TermAssessmentPeriod {
+  id        String   @id @default(uuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  weight    Float
+  termId    String
+  term      AcademicTerm @relation(fields: [termId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("term_assessment_periods")
+}
+
+model ClassGroupTermSettings {
+  id            String      @id @default(uuid())
+  classGroupId  String
+  programTermId String
+  customSettings Json?
+  classGroup    ClassGroup  @relation(fields: [classGroupId], references: [id])
+  programTerm   ProgramTermStructure @relation(fields: [programTermId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("class_group_term_settings")
+}
 
