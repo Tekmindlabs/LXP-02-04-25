@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast"; 
+import { useToast } from "@/hooks/use-toast";
+import { Status } from "@prisma/client";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,7 +61,9 @@ export default function TimetableForm({ onCancel }: TimetableFormProps) {
 		enabled: !!selectedCalendarId
 	});
 	const { data: classGroups } = api.classGroup.list.useQuery();
-	const { data: classes } = api.class.list.useQuery();
+	const { data: classes } = api.class.searchClasses.useQuery({
+		status: Status.ACTIVE
+	});
 
 
 	const form = useForm<z.infer<typeof formSchema>>({

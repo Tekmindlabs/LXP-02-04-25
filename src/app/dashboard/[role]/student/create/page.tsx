@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/utils/api';
 import { useToast } from '@/hooks/use-toast';
+import { Status } from '@prisma/client';
 
 interface PageParams {
 	role: string;
@@ -52,7 +53,9 @@ export default function CreateStudentPage({ params }: { params: PageParams }) {
 		setTimeout(() => setCopiedParent(false), 2000);
 	};
 
-	const { data: classes = [] } = api.class.list.useQuery();
+	const { data: classes = [] } = api.class.searchClasses.useQuery({
+		status: Status.ACTIVE
+	});
 	
 	const createStudentMutation = api.student.createStudent.useMutation({
 		onSuccess: (result) => {

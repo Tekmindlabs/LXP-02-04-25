@@ -3,8 +3,12 @@
 import { useState } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
+import type { Program, ClassGroup, Class, User } from "@prisma/client";
+
+type NotificationType = "ANNOUNCEMENT" | "ASSIGNMENT" | "GRADE" | "REMINDER" | "SYSTEM";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Status } from "@prisma/client";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +35,9 @@ export default function CreateNotification({ onCancel }: CreateNotificationProps
 
 	const { data: programs } = api.program.getAll.useQuery();
 	const { data: classGroups } = api.classGroup.getAll.useQuery();
-	const { data: classes } = api.class.getAll.useQuery();
+	const { data: classes } = api.class.searchClasses.useQuery({
+		status: Status.ACTIVE
+	});
 	const { data: users } = api.user.getAll.useQuery();
 
 	const createNotification = api.notification.create.useMutation({

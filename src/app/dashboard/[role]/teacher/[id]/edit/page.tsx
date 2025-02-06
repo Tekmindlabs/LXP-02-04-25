@@ -6,9 +6,18 @@ import { TeacherForm } from "@/components/dashboard/roles/super-admin/teacher/Te
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 
-export default function EditTeacherPage({ params }: { params: { role: string; id: string } }) {
+interface PageProps {
+	params: {
+		role: string;
+		id: string;
+	};
+}
+
+export default function EditTeacherPage(props: PageProps) {
 	const router = useRouter();
-	const teacherId = params.id;
+	const teacherId = props.params.id;
+
+
 
 	const { data: teacher } = api.teacher.getById.useQuery(teacherId);
 	const { data: subjects } = api.subject.searchSubjects.useQuery({});

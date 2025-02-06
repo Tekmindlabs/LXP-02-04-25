@@ -22,11 +22,17 @@ interface SearchFilters {
 export const ClassManagement = () => {
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [filters, setFilters] = useState<SearchFilters>({
-        search: "",
-    });
+    const [filters, setFilters] = useState<SearchFilters>({});
 
-    const { data: classesData, isLoading: classesLoading } = api.class.searchClasses.useQuery(filters);
+
+    const { data: classesData, isLoading: classesLoading } = api.class.searchClasses.useQuery(
+        filters,
+        {
+            enabled: true,
+            retry: false,
+            refetchOnWindowFocus: false
+        }
+    );
     const { data: classGroupsData, isLoading: groupsLoading } = api.classGroup.getAllClassGroups.useQuery();
     const { data: teachersData, isLoading: teachersLoading } = api.subject.getAvailableTeachers.useQuery();
 
@@ -96,7 +102,11 @@ export const ClassManagement = () => {
     };
 
     if (classesLoading || groupsLoading || teachersLoading) {
-        return <div>Loading...</div>;
+        return <div className="flex items-center justify-center p-8">Loading...</div>;
+    }
+
+    if (!classesData) {
+        return null;
     }
 
     const stats = {
@@ -173,8 +183,11 @@ export const ClassManagement = () => {
                         <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
                             <Input
                                 placeholder="Search classes..."
-                                value={filters.search}
-                                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                                value={filters.search ?? ""}
+                                onChange={(e) => setFilters({ 
+                                    ...filters, 
+                                    search: e.target.value || undefined 
+                                })}
                                 className="md:w-[300px]"
                             />
                             <Select

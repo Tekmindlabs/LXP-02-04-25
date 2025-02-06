@@ -14,7 +14,7 @@ import { AttendanceDashboard } from './AttendanceDashboard';
 import { useSwipeable } from 'react-swipeable';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/utils/api';
-import { AttendanceStatus } from '@prisma/client';
+import { AttendanceStatus, Status } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 
 interface StudentWithUser {
@@ -63,13 +63,13 @@ export const CombinedAttendanceManagement = () => {
 
 
   // Modified class fetching query
-  const { data: classes, error: classError } = api.class.list.useQuery(
-    undefined,
-    {
-      enabled: sessionStatus === 'authenticated' && hasAccessPermission,
-      retry: 1
-    }
-  );
+  const { data: classes, error: classError } = api.class.searchClasses.useQuery({
+    status: Status.ACTIVE
+  }, {
+    enabled: sessionStatus === 'authenticated' && hasAccessPermission,
+    retry: 1
+  });
+
 
   // Effect for error handling
   useEffect(() => {

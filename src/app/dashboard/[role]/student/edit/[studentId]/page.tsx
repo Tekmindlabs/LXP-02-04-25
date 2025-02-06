@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/utils/api';
 import { useToast } from '@/hooks/use-toast';
+import { Status } from '@prisma/client';
 
 const formSchema = z.object({
 	name: z.string().min(1, { message: 'Name is required' }),
@@ -33,12 +34,14 @@ type PageProps = {
 type FormData = z.infer<typeof formSchema>;
 
 export default function EditStudentPage({ params }: PageProps) {
-	const { role, studentId } = use(params as PageProps['params']);
+	const { role, studentId } = params;
 	const router = useRouter();
 	const { toast } = useToast();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	
-	const { data: classes = [] } = api.class.list.useQuery();
+	const { data: classes = [] } = api.class.searchClasses.useQuery({
+		status: Status.ACTIVE
+	});
 	const { data: student, isLoading } = api.student.getStudent.useQuery(studentId);
 	
 	const updateStudentMutation = api.student.updateStudent.useMutation({
