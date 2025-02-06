@@ -69,7 +69,7 @@ export function BrandingSettings() {
 		borderRadius: "0.375rem",
 	});
 
-	const updateBrandKit = api.settings.updateBrandKit.useMutation({
+	const { mutate: updateBrandKit, isLoading } = api.settings.updateBrandKit.useMutation({
 		onSuccess: () => {
 			toast({
 				title: "Brand Kit Updated",
@@ -115,7 +115,7 @@ export function BrandingSettings() {
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		await updateBrandKit.mutateAsync(brandKit);
+		updateBrandKit(brandKit);
 	};
 
 	return (
@@ -241,9 +241,9 @@ export function BrandingSettings() {
 			<Button 
 				type="submit" 
 				className="w-full"
-				disabled={updateBrandKit.isLoading}
+				disabled={isLoading}
 			>
-				{updateBrandKit.isLoading ? "Saving..." : "Save Brand Kit"}
+				{isLoading ? "Saving..." : "Save Brand Kit"}
 			</Button>
 		</form>
 	);
