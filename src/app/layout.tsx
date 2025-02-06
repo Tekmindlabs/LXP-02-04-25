@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ConsentBanner } from '@/components/gdpr/consent-banner'
 import { getServerAuthSession } from '@/server/auth'
 import { Providers } from './providers' // Import Providers instead of TRPCProvider
+import { LoadingBar } from '@/components/ui/loading-bar'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -31,12 +32,13 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+        <body className={inter.className}>
+        <LoadingBar />
         <Providers session={session} cookieHeader={cookieHeader}>
-            {children}
-            <ConsentBanner />
-            <Toaster />
-            <div id="dialog-root" />
+          {children}
+          <ConsentBanner />
+          <Toaster />
+          <div id="dialog-root" />
           </Providers>
       </body>
     </html>
