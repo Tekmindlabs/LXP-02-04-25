@@ -20,7 +20,10 @@ export function Providers({
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        retry: 1,
+        retry: (failureCount, error: any) => {
+          if (error?.data?.code === 'UNAUTHORIZED') return false;
+          return failureCount < 2;
+        },
         refetchOnWindowFocus: false,
         staleTime: 5 * 1000, // 5 seconds
       },
@@ -41,6 +44,7 @@ export function Providers({
             return {
               cookie: cookieHeader,
               'x-trpc-source': 'react',
+              'x-trpc-session': session?.user?.id ? 'authenticated' : 'unauthenticated',
             };
           },
           transformer: superjson,
@@ -50,13 +54,14 @@ export function Providers({
   );
 
   return (
-    <api.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <SessionProvider 
-          session={session} 
-          refetchOnWindowFocus={false}
-          refetchInterval={0}
-        >
+    <SessionProvider 
+      session={session}
+      refetchInterval={0}
+      refetchOnWindowFocus={false}
+      refetchWhenOffline={false}
+    >
+      <api.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
           <ThemeProvider 
             attribute="class" 
             defaultTheme="system" 
@@ -65,9 +70,8 @@ export function Providers({
           >
             {children}
           </ThemeProvider>
-        </SessionProvider>
-      </QueryClientProvider>
-    </api.Provider>
-
+        </QueryClientProvider>
+      </api.Provider>
+    </SessionProvider>
   );
 }

@@ -39,9 +39,14 @@ export default function EditStudentPage({ params }: PageProps) {
 	const { toast } = useToast();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	
-	const { data: classes = [] } = api.class.searchClasses.useQuery({
-		status: Status.ACTIVE
-	});
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{ status: Status.ACTIVE },
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
 	const { data: student, isLoading } = api.student.getStudent.useQuery(studentId);
 	
 	const updateStudentMutation = api.student.updateStudent.useMutation({

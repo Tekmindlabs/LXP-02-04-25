@@ -53,14 +53,17 @@ export const authOptions: NextAuthOptions = {
           permissions: (token.permissions as string[]) || [],
         };
       }
+      console.log('Session callback:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        userRoles: session?.user?.roles,
+      });
       return session;
     },
     redirect: async ({ url, baseUrl }) => {
-      // If the url is a relative url, append it to the base url
       if (url.startsWith('/')) {
         return `${baseUrl}${url}`;
       }
-      // If the url is already an absolute url, return it
       else if (new URL(url).origin === baseUrl) {
         return url;
       }

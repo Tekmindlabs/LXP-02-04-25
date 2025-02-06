@@ -63,12 +63,14 @@ export const CombinedAttendanceManagement = () => {
 
 
   // Modified class fetching query
-  const { data: classes, error: classError } = api.class.searchClasses.useQuery({
-    status: Status.ACTIVE
-  }, {
-    enabled: sessionStatus === 'authenticated' && hasAccessPermission,
-    retry: 1
-  });
+  const { data: classes = [], error: classError } = api.class.searchClasses.useQuery(
+    { status: Status.ACTIVE },
+    {
+      enabled: true,
+      retry: false,
+      refetchOnWindowFocus: false
+    }
+  );
 
 
   // Effect for error handling

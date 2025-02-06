@@ -56,7 +56,14 @@ export const TeacherManagement = ({ role }: { role: string }) => {
   const { data: apiTeachers, isLoading } = api.teacher.searchTeachers.useQuery(processedFilters);
   const teachers = apiTeachers as Teacher[] | undefined;
   const { data: subjects } = api.subject.searchSubjects.useQuery({});
-  const { data: classes } = api.class.searchClasses.useQuery({});
+  const { data: classes = [] } = api.class.searchClasses.useQuery(
+    {},
+    {
+      enabled: true,
+      retry: false,
+      refetchOnWindowFocus: false
+    }
+  );
 
   if (isLoading) {
 

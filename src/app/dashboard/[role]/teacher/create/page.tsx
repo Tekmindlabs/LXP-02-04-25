@@ -8,7 +8,14 @@ import { api } from "@/utils/api";
 export default function CreateTeacherPage() {
 	const router = useRouter();
 	const { data: subjects } = api.subject.searchSubjects.useQuery({});
-	const { data: classes } = api.class.searchClasses.useQuery({});
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{},
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
 
 	return (
 		<div className="container mx-auto py-6">

@@ -65,7 +65,14 @@ export const StudentManagement = () => {
 		}
 	})) || [];
 
-	const { data: classes } = api.class.searchClasses.useQuery({});
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{},
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
 	const { data: programs } = api.program.getAll.useQuery({
 		page: 1,
 		pageSize: 10

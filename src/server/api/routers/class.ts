@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, permissionProtectedProcedure } from "../trpc";
 import { Status } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import { Permissions } from "@/utils/permissions";
 
 export const classRouter = createTRPCRouter({
 	createClass: protectedProcedure
@@ -229,7 +230,7 @@ export const classRouter = createTRPCRouter({
 			return classData;
 		}),
 
-	searchClasses: protectedProcedure
+	searchClasses: permissionProtectedProcedure([Permissions.CLASS_VIEW])
 		.input(z.object({
 			classGroupId: z.string().optional(),
 			search: z.string().optional(),
@@ -238,20 +239,11 @@ export const classRouter = createTRPCRouter({
 		}))
 		.query(async ({ ctx, input }) => {
 			const { search, classGroupId, teacherId, status } = input;
-			const userRoles = ctx.session?.user?.roles || [];
-			const hasAccess = userRoles.some(role => 
-				['ADMIN', 'SUPER_ADMIN', 'TEACHER'].includes(role)
-			);
-
-			if (!hasAccess) {
-				throw new TRPCError({
-					code: 'UNAUTHORIZED',
-					message: 'You do not have permission to access class list'
-				});
-			}
+			const isTeacher = ctx.session.user.roles.includes('TEACHER');
 
 			// For teachers, only return their assigned classes
-			if (userRoles.includes('TEACHER') && !userRoles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
+			if (isTeacher) {
+
 				return ctx.prisma.class.findMany({
 					where: {
 						teachers: {
@@ -336,77 +328,94 @@ export const classRouter = createTRPCRouter({
 			id: z.string(),
 		}))
 		.query(async ({ ctx, input }) => {
-			const userRoles = ctx.session?.user?.roles || [];
-			const hasAccess = userRoles.some(role => 
-				['ADMIN', 'SUPER_ADMIN', 'TEACHER'].includes(role)
-			);
+			try {
+				if (!ctx.session?.user) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'You must be logged in to access class details',
+					});
+				}
 
-			if (!hasAccess) {
-				throw new TRPCError({
-					code: 'UNAUTHORIZED',
-					message: 'You do not have permission to access class details'
-				});
-			}
+				const userRoles = ctx.session.user.roles || [];
+				const hasAccess = userRoles.some(role => 
+					['ADMIN', 'SUPER_ADMIN', 'TEACHER'].includes(role)
+				);
 
-			const classDetails = await ctx.prisma.class.findUnique({
-				where: { id: input.id },
-				include: {
-					classGroup: {
-						include: {
-							program: true,
-							calendar: {
-								include: {
-									events: true
+				if (!hasAccess) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'You do not have permission to access class details',
+					});
+				}
+
+				const classDetails = await ctx.prisma.class.findUnique({
+					where: { id: input.id },
+					include: {
+						classGroup: {
+							include: {
+								program: true,
+								calendar: {
+									include: {
+										events: true
+									}
 								}
-							}
+							},
 						},
-					},
-					teachers: {
-						include: {
-							teacher: {
-								include: {
-									user: true,
+						teachers: {
+							include: {
+								teacher: {
+									include: {
+										user: true,
+									},
 								},
 							},
 						},
-					},
-					students: {
-						include: {
-							user: true,
+						students: {
+							include: {
+								user: true,
+							},
+						},
+						activities: {
+							include: {
+								submissions: true,
+							},
+						},
+						timetables: {
+							include: {
+								periods: true,
+							},
 						},
 					},
-					activities: {
-						include: {
-							submissions: true,
-						},
-					},
-					timetables: {
-						include: {
-							periods: true,
-						},
-					},
-				},
-			});
-
-			if (!classDetails) {
-				throw new TRPCError({
-					code: 'NOT_FOUND',
-					message: 'Class not found',
 				});
-			}
 
-			// For teachers, verify they have access to this class
-			if (userRoles.includes('TEACHER') && !userRoles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
-				const hasClassAccess = classDetails.teachers.some(t => t.teacher.userId === ctx.session.user.id);
-				if (!hasClassAccess) {
+				if (!classDetails) {
 					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'You do not have permission to access this class'
+						code: 'NOT_FOUND',
+						message: 'Class not found',
 					});
 				}
-			}
 
-			return classDetails;
+				// For teachers, verify they have access to this class
+				if (userRoles.includes('TEACHER') && !userRoles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
+					const hasClassAccess = classDetails.teachers.some(t => t.teacher.userId === ctx.session.user.id);
+					if (!hasClassAccess) {
+						throw new TRPCError({
+							code: 'UNAUTHORIZED',
+							message: 'You do not have permission to access this class',
+						});
+					}
+				}
+
+				return classDetails;
+			} catch (error) {
+				console.error('Error in getClassDetails:', error);
+				if (error instanceof TRPCError) throw error;
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'An unexpected error occurred while fetching class details',
+					cause: error,
+				});
+			}
 		}),
 
 
@@ -547,6 +556,15 @@ export const classRouter = createTRPCRouter({
 					},
 				},
 			});
+
+			if (!classData) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Class not found'
+				});
+			}
+
+			return classData;
 		}),
 
 	search: protectedProcedure

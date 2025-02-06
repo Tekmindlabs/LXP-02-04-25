@@ -53,9 +53,14 @@ export default function CreateStudentPage({ params }: { params: PageParams }) {
 		setTimeout(() => setCopiedParent(false), 2000);
 	};
 
-	const { data: classes = [] } = api.class.searchClasses.useQuery({
-		status: Status.ACTIVE
-	});
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{ status: Status.ACTIVE },
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
 	
 	const createStudentMutation = api.student.createStudent.useMutation({
 		onSuccess: (result) => {

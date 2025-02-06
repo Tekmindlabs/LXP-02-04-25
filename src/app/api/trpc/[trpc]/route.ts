@@ -11,25 +11,36 @@ const handler = (req: NextRequest) =>
 		req,
 		router: appRouter,
 		createContext: async () => {
-			const ctx = await createTRPCContext({ req });
-			console.log('TRPC Context Created:', {
-				hasSession: !!ctx.session,
-				userId: ctx.session?.user?.id,
-				userRoles: ctx.session?.user?.roles,
-			});
-			return ctx;
+			try {
+				const ctx = await createTRPCContext({ req });
+				console.log('TRPC Context Created:', {
+					hasSession: !!ctx.session,
+					userId: ctx.session?.user?.id,
+					userRoles: ctx.session?.user?.roles,
+					path: req.nextUrl.pathname,
+					method: req.method,
+				});
+				return ctx;
+			} catch (error) {
+				console.error('Error creating TRPC context:', error);
+				throw error;
+			}
 		},
-		onError:
-			env.NODE_ENV === "development"
-				? ({ path, error }) => {
-						console.error(
-							`❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`
-						);
-						if (error.cause) {
-							console.error('Error cause:', error.cause);
-						}
-					}
-				: undefined,
+		onError: ({ path, error }) => {
+			console.error(
+				`❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`,
+				{
+					code: error.code,
+					data: error.data,
+					path,
+					input: error.shape?.data?.inputValues,
+					stack: error.stack,
+				}
+			);
+			if (error.cause) {
+				console.error('Error cause:', error.cause);
+			}
+		},
 	});
 
 export { handler as GET, handler as POST };

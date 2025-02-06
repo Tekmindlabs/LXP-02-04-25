@@ -21,7 +21,14 @@ export default function EditTeacherPage(props: PageProps) {
 
 	const { data: teacher } = api.teacher.getById.useQuery(teacherId);
 	const { data: subjects } = api.subject.searchSubjects.useQuery({});
-	const { data: classes } = api.class.searchClasses.useQuery({});
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{},
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
 	const createCredentialsMutation = api.teacher.createCredentials.useMutation({
 		onSuccess: () => {
 			alert('Login credentials created and sent to teacher\'s email');

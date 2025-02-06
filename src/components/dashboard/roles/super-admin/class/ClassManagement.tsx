@@ -13,7 +13,7 @@ import { Class } from "@/types/class";
 import { LuUsers, LuBookOpen, LuGraduationCap, LuUserCheck } from "react-icons/lu";
 
 interface SearchFilters {
-    search: string;
+    search?: string;
     classGroupId?: string;
     teacherId?: string;
     status?: Status;
@@ -22,7 +22,7 @@ interface SearchFilters {
 export const ClassManagement = () => {
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [filters, setFilters] = useState<SearchFilters>({});
+    const [filters, setFilters] = useState<SearchFilters>({ search: '' });
 
 
     const { data: classesData, isLoading: classesLoading } = api.class.searchClasses.useQuery(
@@ -183,10 +183,10 @@ export const ClassManagement = () => {
                         <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
                             <Input
                                 placeholder="Search classes..."
-                                value={filters.search ?? ""}
+                                value={filters.search}
                                 onChange={(e) => setFilters({ 
                                     ...filters, 
-                                    search: e.target.value || undefined 
+                                    search: e.target.value
                                 })}
                                 className="md:w-[300px]"
                             />

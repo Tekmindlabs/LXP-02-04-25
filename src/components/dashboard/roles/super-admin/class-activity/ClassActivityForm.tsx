@@ -58,7 +58,14 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 	const { toast } = useToast();
 	const utils = api.useContext();
 	const { data: classGroups } = api.classGroup.getAllClassGroups.useQuery();
-	const { data: classes } = api.class.searchClasses.useQuery({});
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{},
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
 	const { data: subjects } = api.subject.getAll.useQuery();
 	const formSchema = z.object({
 		title: z.string().min(1, "Title is required"),

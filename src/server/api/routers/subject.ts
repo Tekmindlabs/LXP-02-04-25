@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, permissionProtectedProcedure } from "../trpc";
 import { Status } from "@prisma/client";
+import { Permissions } from "@/utils/permissions";
 
 export const subjectRouter = createTRPCRouter({
 	getAll: protectedProcedure
@@ -226,7 +227,7 @@ export const subjectRouter = createTRPCRouter({
 			});
 		}),
 
-	getAvailableTeachers: protectedProcedure
+	getAvailableTeachers: permissionProtectedProcedure([Permissions.SUBJECT_VIEW, Permissions.CLASS_VIEW])
 		.query(async ({ ctx }) => {
 			return ctx.prisma.teacherProfile.findMany({
 				where: {

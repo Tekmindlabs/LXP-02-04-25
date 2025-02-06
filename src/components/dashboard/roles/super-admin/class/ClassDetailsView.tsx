@@ -87,10 +87,16 @@ export const ClassDetailsView = ({ classId }: ClassDetailsViewProps) => {
 
 	const { data: classDetails, error: classError, isLoading } = api.class.getClassDetails.useQuery(
 		{ id: classId },
-		{ retry: false }
+		{ 
+			retry: 1,
+			refetchOnWindowFocus: false,
+			onError: (error) => {
+				console.error('Error fetching class details:', error);
+			}
+		}
 	) as { 
 		data: ClassDetails | undefined;
-		error: unknown;
+		error: { message: string } | null;
 		isLoading: boolean;
 	};
 
@@ -107,10 +113,20 @@ export const ClassDetailsView = ({ classId }: ClassDetailsViewProps) => {
 		);
 	}
 
-	if (classError || !classDetails) {
+	if (classError) {
 		return (
 			<div className="p-4 text-center">
-				<p className="text-destructive">Failed to load class details. Please try again later.</p>
+				<p className="text-destructive">
+					{classError.message || 'Failed to load class details. Please try again later.'}
+				</p>
+			</div>
+		);
+	}
+
+	if (!classDetails) {
+		return (
+			<div className="p-4 text-center">
+				<p className="text-destructive">No class details found.</p>
 			</div>
 		);
 	}

@@ -3,18 +3,16 @@
 import { useState } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
-import type { Program, ClassGroup, Class, User } from "@prisma/client";
-
-type NotificationType = "ANNOUNCEMENT" | "ASSIGNMENT" | "GRADE" | "REMINDER" | "SYSTEM";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Status } from "@prisma/client";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { useToast } from "@/hooks/use-toast";
+import { type Program, type ClassGroup, type Class, type User, type NotificationType, Status } from "@prisma/client";
+
 
 type CreateNotificationProps = {
 	onCancel: () => void;
@@ -23,30 +21,38 @@ type CreateNotificationProps = {
 export default function CreateNotification({ onCancel }: CreateNotificationProps) {
 	const { toast } = useToast();
 	const utils = api.useContext();
-
 	const [title, setTitle] = useState("");
+
 	const [content, setContent] = useState("");
-	const [type, setType] = useState<"ANNOUNCEMENT" | "ASSIGNMENT" | "GRADE" | "REMINDER" | "SYSTEM">("ANNOUNCEMENT");
+	const [type, setType] = useState<NotificationType>("ANNOUNCEMENT");
 	const [scheduledFor, setScheduledFor] = useState<Date | undefined>();
 	const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
 	const [selectedClassGroups, setSelectedClassGroups] = useState<string[]>([]);
 	const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
 	const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
-	const { data: programs } = api.program.getAll.useQuery();
-	const { data: classGroups } = api.classGroup.getAll.useQuery();
-	const { data: classes } = api.class.searchClasses.useQuery({
-		status: Status.ACTIVE
+	const { data: programsResponse } = api.program.getAll.useQuery({
+		page: 1,
+		pageSize: 100
 	});
+	const { data: classGroupsData } = api.classGroup.getAllClassGroups.useQuery();
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{ status: Status.ACTIVE },
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
 	const { data: users } = api.user.getAll.useQuery();
 
 	const createNotification = api.notification.create.useMutation({
 		onSuccess: () => {
 			toast({
 				title: "Success",
-				description: "Notification created successfully",
+				description: "Notification created successfully"
 			});
-			utils.notification.getAll.invalidate();
+			void utils.notification.getAll.invalidate();
 			onCancel();
 		},
 		onError: (error) => {
@@ -55,10 +61,10 @@ export default function CreateNotification({ onCancel }: CreateNotificationProps
 				description: error.message,
 				variant: "destructive",
 			});
-		},
+		}
 	});
 
-	const handleSubmit = () => {
+	const handleSubmit = async () => {
 		if (!title.trim() || !content.trim()) {
 			toast({
 				title: "Error",
@@ -68,7 +74,7 @@ export default function CreateNotification({ onCancel }: CreateNotificationProps
 			return;
 		}
 
-		createNotification.mutate({
+		await createNotification.mutate({
 			title: title.trim(),
 			content: content.trim(),
 			type,
@@ -133,7 +139,7 @@ export default function CreateNotification({ onCancel }: CreateNotificationProps
 					<Card className="p-4">
 						<Label>Programs</Label>
 						<ScrollArea className="h-40 mt-2">
-							{programs?.map((program) => (
+							{programsResponse?.programs?.map((program: Program) => (
 								<div key={program.id} className="flex items-center space-x-2 py-1">
 									<input
 										type="checkbox"
@@ -155,7 +161,7 @@ export default function CreateNotification({ onCancel }: CreateNotificationProps
 					<Card className="p-4">
 						<Label>Class Groups</Label>
 						<ScrollArea className="h-40 mt-2">
-							{classGroups?.map((group) => (
+							{classGroupsData?.map((group: ClassGroup) => (
 								<div key={group.id} className="flex items-center space-x-2 py-1">
 									<input
 										type="checkbox"
@@ -224,7 +230,7 @@ export default function CreateNotification({ onCancel }: CreateNotificationProps
 				<Button variant="outline" onClick={onCancel}>
 					Cancel
 				</Button>
-				<Button onClick={handleSubmit} disabled={createNotification.isLoading}>
+				<Button onClick={handleSubmit} disabled={createNotification.isPending}>
 					Create Notification
 				</Button>
 			</div>

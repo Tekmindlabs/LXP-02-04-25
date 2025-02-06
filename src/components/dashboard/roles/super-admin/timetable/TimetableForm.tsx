@@ -61,9 +61,15 @@ export default function TimetableForm({ onCancel }: TimetableFormProps) {
 		enabled: !!selectedCalendarId
 	});
 	const { data: classGroups } = api.classGroup.list.useQuery();
-	const { data: classes } = api.class.searchClasses.useQuery({
-		status: Status.ACTIVE
-	});
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{ status: Status.ACTIVE },
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
+
 
 
 	const form = useForm<z.infer<typeof formSchema>>({

@@ -35,7 +35,14 @@ export default function TeacherPage() {
 
 	const { data: teachers, isLoading } = api.teacher.searchTeachers.useQuery(processedFilters);
 	const { data: subjects } = api.subject.searchSubjects.useQuery({});
-	const { data: classes } = api.class.searchClasses.useQuery({});
+	const { data: classes = [] } = api.class.searchClasses.useQuery(
+		{},
+		{
+			enabled: true,
+			retry: false,
+			refetchOnWindowFocus: false
+		}
+	);
 
 	if (isLoading) {
 		return <div>Loading...</div>;
