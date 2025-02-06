@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+type CalendarFormState = {
+	name: string;
+	description: string;
+	type: CalendarType;
+};
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +25,7 @@ export const AcademicYearSettings = () => {
 	});
 
 	const [isCalendarDialogOpen, setIsCalendarDialogOpen] = useState(false);
-	const [calendar, setCalendar] = useState({
+	const [calendar, setCalendar] = useState<CalendarFormState>({
 		name: "",
 		description: "",
 		type: CalendarType.PRIMARY,
@@ -28,8 +34,8 @@ export const AcademicYearSettings = () => {
 	const { toast } = useToast();
 	const utils = api.useContext();
 
-	const { data: currentSettings, isLoading } = api.academicYear.getSettings.useQuery();
 	const { data: academicYear } = api.academicYear.getAllAcademicYears.useQuery();
+
 	const { data: calendars } = api.calendar.getAll.useQuery();
 	const updateSettings = api.academicYear.updateSettings.useMutation({
 		onSuccess: () => {
@@ -211,14 +217,11 @@ export const AcademicYearSettings = () => {
 								<Label>Type</Label>
 								<Select
 									value={calendar.type}
-									onValueChange={(value: CalendarType) => {
-										// Ensure we only set valid calendar types
-										if (Object.values(CalendarType).includes(value)) {
-											setCalendar({ ...calendar, type: value });
-										}
-									}
-									}
+									onValueChange={(value) => {
+										setCalendar(prev => ({ ...prev, type: value as CalendarType }));
+									}}
 								>
+
 									<SelectTrigger>
 										<SelectValue />
 									</SelectTrigger>
