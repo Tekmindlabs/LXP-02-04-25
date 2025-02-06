@@ -69,7 +69,7 @@ export function BrandingSettings() {
 		borderRadius: "0.375rem",
 	});
 
-	const { mutate: updateBrandKit, isLoading } = api.settings.updateBrandKit.useMutation({
+	const { mutate: updateBrandKit, isPending } = api.settings.updateBrandKit.useMutation({
 		onSuccess: () => {
 			toast({
 				title: "Brand Kit Updated",
@@ -241,9 +241,9 @@ export function BrandingSettings() {
 			<Button 
 				type="submit" 
 				className="w-full"
-				disabled={isLoading}
+				disabled={isPending}
 			>
-				{isLoading ? "Saving..." : "Save Brand Kit"}
+				{isPending ? "Saving..." : "Save Brand Kit"}
 			</Button>
 		</form>
 	);

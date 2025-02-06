@@ -1,4 +1,4 @@
-import { SystemSettings } from "@/components/dashboard/settings/SystemSettings";
+import { SystemSettings } from "../../../../../components/dashboard/settings/SystemSettings";
 
 export default function SystemSettingsPage() {
 	return (

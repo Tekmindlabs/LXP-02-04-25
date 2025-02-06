@@ -1,4 +1,5 @@
 import { createTRPCRouter } from "@/server/api/trpc";
+import { settingsRouter } from "./routers/settings";
 import { userRouter } from "./routers/user";
 import { roleRouter } from "./routers/role";
 import { attendanceRouter } from "./routers/attendance";
@@ -25,6 +26,7 @@ import { coordinatorRouter } from "./routers/coordinator";
 
 
 export const appRouter = createTRPCRouter({
+  settings: settingsRouter,
   user: userRouter,
   role: roleRouter,
   permission: permissionRouter,

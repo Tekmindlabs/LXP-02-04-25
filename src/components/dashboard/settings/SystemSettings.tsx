@@ -7,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { api } from "@/utils/api";
 
 export function SystemSettings() {
+	const { toast } = useToast();
+	const utils = api.useContext();
+
 	const [settings, setSettings] = useState({
 		mfaEnabled: false,
 		emailNotifications: true,
@@ -14,111 +17,86 @@ export function SystemSettings() {
 		maintenanceMode: false,
 	});
 
-	const { toast } = useToast();
-	const utils = api.useContext();
-
-	const updateSettings = api.settings.updateSystemSettings.useMutation({
+	const { mutate: updateSettings, isPending } = api.settings.updateSystemSettings.useMutation({
 		onSuccess: () => {
 			toast({
-				title: "Settings updated",
-				description: "System settings have been updated successfully.",
+				title: "Settings Updated",
+				description: "System settings have been saved successfully.",
 			});
 			utils.settings.getSystemSettings.invalidate();
 		},
 	});
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		await updateSettings.mutateAsync(settings);
+	const handleToggle = (key: keyof typeof settings) => {
+		setSettings(prev => {
+			const newSettings = { ...prev, [key]: !prev[key] };
+			updateSettings(newSettings);
+			return newSettings;
+		});
 	};
 
 	return (
-		<form onSubmit={handleSubmit}>
-			<div className="space-y-6">
-				<Card>
-					<CardHeader>
-						<CardTitle>Security Settings</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between">
-							<div className="space-y-0.5">
-								<Label>Multi-Factor Authentication</Label>
-								<p className="text-sm text-muted-foreground">
-									Require MFA for all user accounts
-								</p>
-							</div>
-							<Switch
-								checked={settings.mfaEnabled}
-								onCheckedChange={(checked) =>
-									setSettings({ ...settings, mfaEnabled: checked })
-								}
-							/>
-						</div>
-					</CardContent>
-				</Card>
+		<form className="space-y-6">
+			<Card>
+				<CardHeader>
+					<CardTitle>Security Settings</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="flex items-center justify-between">
+						<Label htmlFor="mfa">Multi-Factor Authentication</Label>
+						<Switch
+							id="mfa"
+							checked={settings.mfaEnabled}
+							onCheckedChange={() => handleToggle('mfaEnabled')}
+							disabled={isPending}
+						/>
+					</div>
+				</CardContent>
+			</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle>Notifications</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between">
-							<div className="space-y-0.5">
-								<Label>Email Notifications</Label>
-								<p className="text-sm text-muted-foreground">
-									Send email notifications for important updates
-								</p>
-							</div>
-							<Switch
-								checked={settings.emailNotifications}
-								onCheckedChange={(checked) =>
-									setSettings({ ...settings, emailNotifications: checked })
-								}
-							/>
-						</div>
-					</CardContent>
-				</Card>
+			<Card>
+				<CardHeader>
+					<CardTitle>Notifications</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="flex items-center justify-between">
+						<Label htmlFor="email">Email Notifications</Label>
+						<Switch
+							id="email"
+							checked={settings.emailNotifications}
+							onCheckedChange={() => handleToggle('emailNotifications')}
+							disabled={isPending}
+						/>
+					</div>
+				</CardContent>
+			</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle>System Maintenance</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between">
-							<div className="space-y-0.5">
-								<Label>Automatic Backup</Label>
-								<p className="text-sm text-muted-foreground">
-									Enable automatic system backups
-								</p>
-							</div>
-							<Switch
-								checked={settings.autoBackup}
-								onCheckedChange={(checked) =>
-									setSettings({ ...settings, autoBackup: checked })
-								}
-							/>
-						</div>
-						<div className="flex items-center justify-between">
-							<div className="space-y-0.5">
-								<Label>Maintenance Mode</Label>
-								<p className="text-sm text-muted-foreground">
-									Put system in maintenance mode
-								</p>
-							</div>
-							<Switch
-								checked={settings.maintenanceMode}
-								onCheckedChange={(checked) =>
-									setSettings({ ...settings, maintenanceMode: checked })
-								}
-							/>
-						</div>
-					</CardContent>
-				</Card>
-
-				<Button type="submit" className="w-full">
-					Save Changes
-				</Button>
-			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>System Maintenance</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="flex items-center justify-between">
+						<Label htmlFor="backup">Automatic Backup</Label>
+						<Switch
+							id="backup"
+							checked={settings.autoBackup}
+							onCheckedChange={() => handleToggle('autoBackup')}
+							disabled={isPending}
+						/>
+					</div>
+					<div className="flex items-center justify-between">
+						<Label htmlFor="maintenance">Maintenance Mode</Label>
+						<Switch
+							id="maintenance"
+							checked={settings.maintenanceMode}
+							onCheckedChange={() => handleToggle('maintenanceMode')}
+							disabled={isPending}
+						/>
+					</div>
+				</CardContent>
+			</Card>
 		</form>
+
 	);
 }
