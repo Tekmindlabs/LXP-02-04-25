@@ -6,6 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/utils/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Status, CalendarType } from "@prisma/client";
+import { TermSettings } from "./TermSettings";
 
 export const AcademicYearSettings = () => {
 	const [settings, setSettings] = useState({
@@ -15,10 +18,19 @@ export const AcademicYearSettings = () => {
 		endDay: 31,
 	});
 
+	const [isCalendarDialogOpen, setIsCalendarDialogOpen] = useState(false);
+	const [calendar, setCalendar] = useState({
+		name: "",
+		description: "",
+		type: CalendarType.PRIMARY,
+	});
+
 	const { toast } = useToast();
 	const utils = api.useContext();
 
 	const { data: currentSettings, isLoading } = api.academicYear.getSettings.useQuery();
+	const { data: academicYear } = api.academicYear.getAllAcademicYears.useQuery();
+	const { data: calendars } = api.calendar.getAll.useQuery();
 	const updateSettings = api.academicYear.updateSettings.useMutation({
 		onSuccess: () => {
 			toast({
@@ -26,6 +38,17 @@ export const AcademicYearSettings = () => {
 				description: "Academic year settings updated successfully",
 			});
 			utils.academicYear.getSettings.invalidate();
+		},
+	});
+
+	const createCalendar = api.calendar.create.useMutation({
+		onSuccess: () => {
+			toast({
+				title: "Success",
+				description: "Calendar created successfully",
+			});
+			setIsCalendarDialogOpen(false);
+			utils.calendar.getAll.invalidate();
 		},
 	});
 
@@ -39,8 +62,23 @@ export const AcademicYearSettings = () => {
 		updateSettings.mutate(settings);
 	};
 
+	const handleCalendarSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!academicYear?.[0]?.id) return;
+
+		const currentYear = new Date().getFullYear();
+		createCalendar.mutate({
+			...calendar,
+			academicYearId: academicYear[0].id,
+			startDate: new Date(currentYear, settings.startMonth - 1, settings.startDay),
+			endDate: new Date(currentYear + 1, settings.endMonth - 1, settings.endDay),
+			status: Status.ACTIVE,
+		});
+	};
+
 	return (
-		<Card>
+		<div className="space-y-6">
+			<Card>
 			<CardHeader>
 				<CardTitle>Academic Year Configuration</CardTitle>
 			</CardHeader>
@@ -140,5 +178,79 @@ export const AcademicYearSettings = () => {
 				</form>
 			</CardContent>
 		</Card>
-	);
+
+		<Card>
+			<CardHeader className="flex flex-row items-center justify-between">
+				<CardTitle>Calendars</CardTitle>
+				<Dialog open={isCalendarDialogOpen} onOpenChange={setIsCalendarDialogOpen}>
+					<DialogTrigger asChild>
+						<Button>Add Calendar</Button>
+					</DialogTrigger>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>Create Calendar</DialogTitle>
+						</DialogHeader>
+						<form onSubmit={handleCalendarSubmit} className="space-y-4">
+							<div className="space-y-2">
+								<Label>Name</Label>
+								<Input
+									value={calendar.name}
+									onChange={(e) => setCalendar({ ...calendar, name: e.target.value })}
+									placeholder="e.g., Main Calendar 2024-2025"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Description</Label>
+								<Input
+									value={calendar.description}
+									onChange={(e) => setCalendar({ ...calendar, description: e.target.value })}
+									placeholder="Calendar description"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label>Type</Label>
+								<Select
+									value={calendar.type}
+									onValueChange={(value: CalendarType) => 
+										setCalendar({ ...calendar, type: value })
+									}
+								>
+									<SelectTrigger>
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										{Object.values(CalendarType).map((type) => (
+											<SelectItem key={type} value={type}>
+												{type}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+							<Button type="submit" disabled={createCalendar.isPending}>
+								{createCalendar.isPending ? "Creating..." : "Create Calendar"}
+							</Button>
+						</form>
+					</DialogContent>
+				</Dialog>
+			</CardHeader>
+			<CardContent>
+				<div className="space-y-4">
+					{calendars?.map((calendar) => (
+						<div key={calendar.id} className="rounded-lg border p-4">
+							<div className="flex items-center justify-between">
+								<div>
+									<h4 className="font-medium">{calendar.name}</h4>
+									<p className="text-sm text-gray-500">{calendar.description}</p>
+								</div>
+								<span className="text-sm text-gray-500">{calendar.type}</span>
+							</div>
+							<TermSettings calendarId={calendar.id} />
+						</div>
+					))}
+				</div>
+			</CardContent>
+		</Card>
+	</div>
+);
 };

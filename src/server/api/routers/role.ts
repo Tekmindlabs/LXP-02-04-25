@@ -12,7 +12,7 @@ const roleSchema = z.object({
 export const roleRouter = createTRPCRouter({
   getAll: permissionProtectedProcedure(Permissions.ROLE_READ)
     .query(async ({ ctx }) => {
-      return ctx.prisma.role.findMany({
+        return ctx.prisma.role.findMany({
         include: {
           permissions: {
             include: {
@@ -26,7 +26,7 @@ export const roleRouter = createTRPCRouter({
   getById: permissionProtectedProcedure(Permissions.ROLE_READ)
     .input(z.string())
     .query(async ({ ctx, input }) => {
-      const role = await ctx.prisma.role.findUnique({
+        const role = await ctx.prisma.role.findUnique({
         where: { id: input },
         include: {
           permissions: {
@@ -47,7 +47,7 @@ export const roleRouter = createTRPCRouter({
   create: permissionProtectedProcedure(Permissions.ROLE_CREATE)
     .input(roleSchema)
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.role.create({
+        return ctx.prisma.role.create({
         data: {
           name: input.name,
           description: input.description,
@@ -74,7 +74,7 @@ export const roleRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, data } = input;
-      return ctx.prisma.role.update({
+        return ctx.prisma.role.update({
         where: { id },
         data: {
           ...data,
@@ -98,7 +98,7 @@ export const roleRouter = createTRPCRouter({
   delete: permissionProtectedProcedure(Permissions.ROLE_DELETE)
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.role.delete({
+        return ctx.prisma.role.delete({
         where: { id: input },
       });
     }),

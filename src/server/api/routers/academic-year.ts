@@ -5,7 +5,7 @@ import { Status } from "@prisma/client";
 export const academicYearRouter = createTRPCRouter({
 	getSettings: protectedProcedure
 		.query(async ({ ctx }) => {
-			return ctx.prisma.academicYearSettings.findFirst();
+			return ctx.prisma.academic_year_settings.findFirst();
 		}),
 
 	updateSettings: protectedProcedure
@@ -16,7 +16,7 @@ export const academicYearRouter = createTRPCRouter({
 			endDay: z.number().min(1).max(31),
 		}))
 		.mutation(async ({ ctx, input }) => {
-			return ctx.prisma.academicYearSettings.upsert({
+			return ctx.prisma.academic_year_settings.upsert({
 				where: {
 					id: "settings"
 				},
@@ -33,14 +33,14 @@ export const academicYearRouter = createTRPCRouter({
 			status: z.nativeEnum(Status).default(Status.ACTIVE),
 		}))
 		.mutation(async ({ ctx, input }) => {
-			return ctx.prisma.academicYear.create({
+			return ctx.prisma.academic_years.create({
 				data: input,
 			});
 		}),
 
 	getAllAcademicYears: protectedProcedure
 		.query(async ({ ctx }) => {
-			return ctx.prisma.academicYear.findMany({
+			return ctx.prisma.academic_years.findMany({
 				include: {
 					calendars: true,
 				},

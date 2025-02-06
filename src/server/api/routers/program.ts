@@ -182,7 +182,7 @@ export const programRouter = createTRPCRouter({
 
         // Validate coordinator if provided
         if (input.coordinatorId) {
-          const coordinator = await ctx.prisma.coordinatorProfile.findUnique({
+            const coordinator = await ctx.prisma.coordinatorProfile.findUnique({
             where: { id: input.coordinatorId },
           });
 
@@ -243,7 +243,7 @@ export const programRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         // Check if program exists
-        const existingProgram = await ctx.prisma.program.findUnique({
+        const existingProgram = await ctx.prisma.Program.findUnique({
           where: { id: input.id },
         });
 
@@ -284,7 +284,7 @@ export const programRouter = createTRPCRouter({
 
         const { id, calendarId, coordinatorId, ...data } = input;
         
-        const updatedProgram = await ctx.prisma.program.update({
+        const updatedProgram = await ctx.prisma.Program.update({
           where: { id },
           data: {
             ...data,
@@ -316,7 +316,7 @@ export const programRouter = createTRPCRouter({
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
       try {
-        const program = await ctx.prisma.program.delete({
+        const program = await ctx.prisma.Program.delete({
           where: { id: input },
         });
 
@@ -333,7 +333,7 @@ export const programRouter = createTRPCRouter({
   getAvailableCoordinators: protectedProcedure
     .query(async ({ ctx }) => {
       try {
-        const coordinators = await ctx.prisma.coordinatorProfile.findMany({
+        const coordinators = await ctx.prisma.CoordinatorProfile.findMany({
           include: {
             user: true,
           },
@@ -359,7 +359,7 @@ export const programRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        const program = await ctx.prisma.program.update({
+        const program = await ctx.prisma.Program.update({
           where: { id: input.programId },
           data: {
             calendar: {
@@ -400,7 +400,7 @@ export const programRouter = createTRPCRouter({
     .input(z.string())
     .query(async ({ ctx, input }) => {
       try {
-        const programs = await ctx.prisma.program.findMany({
+        const programs = await ctx.prisma.Program.findMany({
           where: {
             OR: [
               { name: { contains: input, mode: 'insensitive' as Prisma.QueryMode } },

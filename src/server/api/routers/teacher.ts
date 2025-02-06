@@ -84,8 +84,8 @@ export const teacherRouter = createTRPCRouter({
 				include: {
 					teacherProfile: {
 						include: {
-							subjects: { include: { subject: true } },
-							classes: { include: { class: true } },
+							subjects: { include: { Subject: true } },
+							classes: { include: { Class: true } },
 						},
 					},
 				},
@@ -177,8 +177,8 @@ export const teacherRouter = createTRPCRouter({
 				include: {
 					teacherProfile: {
 						include: {
-							subjects: { include: { subject: true } },
-							classes: { include: { class: true } },
+							subjects: { include: { Subject: true } },
+							classes: { include: { Class: true } },
 						},
 					},
 				},
@@ -203,18 +203,18 @@ export const teacherRouter = createTRPCRouter({
 					userType: UserType.TEACHER 
 				},
 				include: {
-					teacherProfile: {
+					TeacherProfile: {
 						include: {
 							subjects: {
 								include: {
-									subject: true,
+									Subject: true,
 								},
 							},
 							classes: {
 								include: {
-									class: {
+									Class: {
 										include: {
-											classGroup: true,
+											ClassGroup: true,
 										},
 									},
 								},

@@ -12,13 +12,13 @@ const permissionSchema = z.object({
 export const permissionRouter = createTRPCRouter({
   getAll: permissionProtectedProcedure(Permissions.PERMISSION_MANAGE)
     .query(async ({ ctx }) => {
-      return ctx.prisma.permission.findMany();
+        return ctx.prisma.permission.findMany();
     }),
 
   getById: permissionProtectedProcedure(Permissions.PERMISSION_MANAGE)
     .input(z.string())
     .query(async ({ ctx, input }) => {
-      const permission = await ctx.prisma.permission.findUnique({
+        const permission = await ctx.prisma.permission.findUnique({
         where: { id: input },
       });
 
@@ -32,7 +32,7 @@ export const permissionRouter = createTRPCRouter({
   create: permissionProtectedProcedure(Permissions.PERMISSION_MANAGE)
     .input(permissionSchema)
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.permission.create({
+        return ctx.prisma.permission.create({
         data: input,
       });
     }),
@@ -44,7 +44,7 @@ export const permissionRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, data } = input;
-      return ctx.prisma.permission.update({
+        return ctx.prisma.permission.update({
         where: { id },
         data,
       });
@@ -53,7 +53,7 @@ export const permissionRouter = createTRPCRouter({
   delete: permissionProtectedProcedure(Permissions.PERMISSION_MANAGE)
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.permission.delete({
+        return ctx.prisma.permission.delete({
         where: { id: input },
       });
     }),

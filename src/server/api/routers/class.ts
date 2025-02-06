@@ -348,7 +348,7 @@ export const classRouter = createTRPCRouter({
 	getById: protectedProcedure
 		.input(z.string())
 		.query(async ({ ctx, input }) => {
-			return ctx.prisma.class.findUnique({
+			return ctx.prisma.Class.findUnique({
 				where: { id: input },
 				include: {
 					classGroup: true,
@@ -399,7 +399,7 @@ export const classRouter = createTRPCRouter({
 		}))
 		.query(({ ctx, input }) => {
 			const { search, ...filters } = input;
-			return ctx.prisma.class.findMany({
+			return ctx.prisma.Class.findMany({
 				where: {
 					...filters,
 					...(search && {
@@ -434,7 +434,7 @@ export const classRouter = createTRPCRouter({
 			const userId = ctx.session?.user?.id;
 			if (!userId) return [];
 
-			return ctx.prisma.class.findMany({
+			return ctx.prisma.Class.findMany({
 				where: {
 					teachers: {
 						some: {

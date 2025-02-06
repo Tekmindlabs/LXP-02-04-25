@@ -38,7 +38,7 @@ export const timetableRouter = createTRPCRouter({
 
       // Check for period conflicts and get teacher profiles
       for (const period of input.periods) {
-        const teacherProfile = await ctx.prisma.teacherProfile.findFirst({
+const teacherProfile = await ctx.prisma.teacherProfile.findFirst({
           where: { userId: period.teacherId },
         });
 
@@ -49,7 +49,7 @@ export const timetableRouter = createTRPCRouter({
           });
         }
 
-        const conflictingPeriod = await ctx.prisma.period.findFirst({
+const conflictingPeriod = await ctx.prisma.period.findFirst({
           where: {
             OR: [
               {
@@ -109,7 +109,7 @@ export const timetableRouter = createTRPCRouter({
         });
       }
 
-      return ctx.prisma.timetable.create({
+return ctx.prisma.timetable.create({
         data: {
           termId: input.termId,
           classGroupId: input.classGroupId,

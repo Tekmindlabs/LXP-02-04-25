@@ -14,7 +14,7 @@ const userSchema = z.object({
 export const userRouter = createTRPCRouter({
   getAll: permissionProtectedProcedure(Permissions.USER_READ)
     .query(async ({ ctx }) => {
-      return ctx.prisma.user.findMany({
+        return ctx.prisma.user.findMany({
         include: {
           userRoles: {
             include: {
@@ -28,7 +28,7 @@ export const userRouter = createTRPCRouter({
   getById: permissionProtectedProcedure(Permissions.USER_READ)
     .input(z.string())
     .query(async ({ ctx, input }) => {
-      const user = await ctx.prisma.user.findUnique({
+        const user = await ctx.prisma.user.findUnique({
         where: { id: input },
         include: {
           userRoles: {
@@ -53,7 +53,7 @@ export const userRouter = createTRPCRouter({
         ? await bcrypt.hash(input.password, 12)
         : undefined;
 
-      return ctx.prisma.user.create({
+        return ctx.prisma.user.create({
         data: {
           email: input.email,
           name: input.name,
@@ -85,7 +85,7 @@ export const userRouter = createTRPCRouter({
         ? await bcrypt.hash(data.password, 12)
         : undefined;
 
-      return ctx.prisma.user.update({
+        return ctx.prisma.user.update({
         where: { id },
         data: {
           ...data,
@@ -110,7 +110,7 @@ export const userRouter = createTRPCRouter({
   delete: permissionProtectedProcedure(Permissions.USER_DELETE)
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.user.delete({
+        return ctx.prisma.user.delete({
         where: { id: input },
       });
     }),
@@ -122,7 +122,7 @@ export const userRouter = createTRPCRouter({
       roles: z.array(z.string()).optional(),
     }))
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.user.findMany({
+        return ctx.prisma.user.findMany({
         where: {
           AND: [
             {

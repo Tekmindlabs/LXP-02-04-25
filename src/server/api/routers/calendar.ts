@@ -9,9 +9,10 @@ const calendarSchema = z.object({
 	startDate: z.date(),
 	endDate: z.date(),
 	type: z.nativeEnum(CalendarType),
-	visibility: z.nativeEnum(Visibility),
+	visibility: z.nativeEnum(Visibility).optional().default(Visibility.ALL),
 	isDefault: z.boolean().optional(),
 	status: z.nativeEnum(Status).optional(),
+	academicYearId: z.string().optional(),
 });
 
 export const calendarRouter = createTRPCRouter({
@@ -73,6 +74,9 @@ export const calendarRouter = createTRPCRouter({
 				data: {
 					...input,
 					status: input.status || Status.ACTIVE,
+					academicYear: input.academicYearId ? {
+						connect: { id: input.academicYearId }
+					} : undefined,
 				},
 			});
 		}),

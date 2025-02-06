@@ -184,7 +184,7 @@ export const studentRouter = createTRPCRouter({
 			classId: z.string()
 		}))
 		.query(async ({ ctx, input }) => {
-			return ctx.prisma.studentProfile.findMany({
+			return ctx.prisma.StudentProfile.findMany({
 				where: {
 					classId: input.classId
 				},
@@ -398,7 +398,7 @@ export const studentRouter = createTRPCRouter({
 			classId: z.string()
 		}))
 		.mutation(async ({ ctx, input }) => {
-			return ctx.prisma.studentProfile.update({
+			return ctx.prisma.StudentProfile.update({
 				where: { userId: input.studentId },
 				data: { classId: input.classId },
 				include: {
@@ -455,7 +455,7 @@ export const studentRouter = createTRPCRouter({
 	getStudentPerformance: protectedProcedure
 		.input(z.string())
 		.query(async ({ ctx, input }) => {
-			const student = await ctx.prisma.studentProfile.findUnique({
+			const student = await ctx.prisma.StudentProfile.findUnique({
 				where: { userId: input },
 				include: {
 					class: {

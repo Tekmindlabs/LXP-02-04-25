@@ -49,7 +49,7 @@ export async function seedUsers(prisma: PrismaClient) {
 				email: 'teacher1@school.com',
 				userType: UserType.TEACHER,
 				status: Status.ACTIVE,
-				teacherProfile: {
+				TeacherProfile: {
 					create: {
 						specialization: 'Mathematics'
 					}
@@ -69,7 +69,7 @@ export async function seedUsers(prisma: PrismaClient) {
 				email: 'teacher2@school.com',
 				userType: UserType.TEACHER,
 				status: Status.ACTIVE,
-				teacherProfile: {
+				TeacherProfile: {
 					create: {
 						specialization: 'Science'
 					}
@@ -90,7 +90,7 @@ export async function seedUsers(prisma: PrismaClient) {
 				email: 'student1@school.com',
 				userType: UserType.STUDENT,
 				status: Status.ACTIVE,
-				studentProfile: {
+				StudentProfile: {
 					create: {
 						dateOfBirth: new Date('2010-01-01')
 					}
@@ -110,7 +110,7 @@ export async function seedUsers(prisma: PrismaClient) {
 				email: 'student2@school.com',
 				userType: UserType.STUDENT,
 				status: Status.ACTIVE,
-				studentProfile: {
+				StudentProfile: {
 					create: {
 						dateOfBirth: new Date('2010-06-15')
 					}

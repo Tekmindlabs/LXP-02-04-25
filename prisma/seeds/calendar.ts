@@ -1,4 +1,4 @@
-import { PrismaClient, Status, EventType } from '@prisma/client';
+import { PrismaClient, Status, EventType, CalendarType, Visibility, Priority } from '@prisma/client';
 
 export async function seedCalendar(prisma: PrismaClient) {
 	console.log('Creating demo calendar...');
@@ -8,7 +8,7 @@ export async function seedCalendar(prisma: PrismaClient) {
 		where: {
 			name_type: {
 				name: "2024-2025 Academic Calendar",
-				type: "PRIMARY"
+				type: CalendarType.PRIMARY
 			}
 		},
 		update: {
@@ -17,7 +17,7 @@ export async function seedCalendar(prisma: PrismaClient) {
 			endDate: new Date('2025-05-31'),
 			status: Status.ACTIVE,
 			isDefault: true,
-			visibility: 'ALL',
+			visibility: Visibility.ALL,
 			metadata: {
 				academicYear: '2024-2025',
 				semester: 'BOTH',
@@ -29,10 +29,10 @@ export async function seedCalendar(prisma: PrismaClient) {
 			description: 'Main academic calendar for 2024-2025',
 			startDate: new Date('2024-08-01'),
 			endDate: new Date('2025-05-31'),
-			type: 'PRIMARY',
+			type: CalendarType.PRIMARY,
 			status: Status.ACTIVE,
 			isDefault: true,
-			visibility: 'ALL',
+			visibility: Visibility.ALL,
 			metadata: {
 				academicYear: '2024-2025',
 				semester: 'BOTH',
@@ -57,8 +57,8 @@ export async function seedCalendar(prisma: PrismaClient) {
 				startDate: new Date('2024-08-01'),
 				endDate: new Date('2024-08-01'),
 				status: Status.ACTIVE,
-				priority: 'HIGH',
-				visibility: 'ALL'
+				priority: Priority.HIGH,
+				visibility: Visibility.ALL
 			},
 			create: {
 				title: 'First Day of School',
@@ -68,8 +68,8 @@ export async function seedCalendar(prisma: PrismaClient) {
 				endDate: new Date('2024-08-01'),
 				calendarId: calendar.id,
 				status: Status.ACTIVE,
-				priority: 'HIGH',
-				visibility: 'ALL'
+				priority: Priority.HIGH,
+				visibility: Visibility.ALL
 			}
 		}),
 		// Holidays
@@ -86,8 +86,8 @@ export async function seedCalendar(prisma: PrismaClient) {
 				startDate: new Date('2024-10-14'),
 				endDate: new Date('2024-10-18'),
 				status: Status.ACTIVE,
-				priority: 'MEDIUM',
-				visibility: 'ALL'
+				priority: Priority.MEDIUM,
+				visibility: Visibility.ALL
 			},
 			create: {
 				title: 'Fall Break',
@@ -97,8 +97,8 @@ export async function seedCalendar(prisma: PrismaClient) {
 				endDate: new Date('2024-10-18'),
 				calendarId: calendar.id,
 				status: Status.ACTIVE,
-				priority: 'MEDIUM',
-				visibility: 'ALL'
+				priority: Priority.MEDIUM,
+				visibility: Visibility.ALL
 			}
 		}),
 		// Terms

@@ -197,7 +197,7 @@ export const classGroupRouter = createTRPCRouter({
 	getClassGroupWithDetails: protectedProcedure
 		.input(z.string())
 		.query(async ({ ctx, input }) => {
-			return ctx.prisma.classGroup.findUnique({
+			return ctx.prisma.ClassGroup.findUnique({
 				where: { id: input },
 				include: {
 					program: {
@@ -274,7 +274,7 @@ export const classGroupRouter = createTRPCRouter({
 			});
 
 			// Inherit subjects to all classes in the group
-			const classes = await ctx.prisma.class.findMany({
+			const classes = await ctx.prisma.Class.findMany({
 				where: { classGroupId },
 			});
 
@@ -285,7 +285,7 @@ export const classGroupRouter = createTRPCRouter({
 				});
 
 				if (timetable) {
-					await ctx.prisma.period.createMany({
+					await ctx.prisma.Period.createMany({
 						data: subjectIds.map(subjectId => ({
 							timetableId: timetable.id,
 							subjectId,
@@ -312,7 +312,7 @@ export const classGroupRouter = createTRPCRouter({
 			const { classGroupId, subjectIds } = input;
 
 			// Remove subjects from class group
-			return ctx.prisma.classGroup.update({
+			return ctx.prisma.ClassGroup.update({
 				where: { id: classGroupId },
 				data: {
 					subjects: {
@@ -335,7 +335,7 @@ export const classGroupRouter = createTRPCRouter({
 			const { classGroupId, calendarId, classId } = input;
 
 			// Get the calendar and its terms
-			const calendar = await ctx.prisma.calendar.findUnique({
+			const calendar = await ctx.prisma.Calendar.findUnique({
 				where: { id: calendarId },
 				include: {
 					terms: true,
@@ -352,7 +352,7 @@ export const classGroupRouter = createTRPCRouter({
 				throw new Error("No terms found in calendar");
 			}
 
-			const timetable = await ctx.prisma.timetable.create({
+			const timetable = await ctx.prisma.Timetable.create({
 				data: {
 					termId: term.id,
 					classGroupId,
@@ -378,7 +378,7 @@ export const classGroupRouter = createTRPCRouter({
 
 	list: protectedProcedure
 		.query(({ ctx }) => {
-			return ctx.prisma.classGroup.findMany({
+			return ctx.prisma.ClassGroup.findMany({
 				include: {
 					program: true,
 					classes: true,
@@ -452,7 +452,7 @@ export const classGroupRouter = createTRPCRouter({
 			classId: z.string()
 		}))
 		.mutation(async ({ ctx, input }) => {
-			const existingTimetable = await ctx.prisma.timetable.findFirst({
+			const existingTimetable = await ctx.prisma.Timetable.findFirst({
 				where: { classGroupId: input.classGroupId },
 			});
 
