@@ -886,4 +886,62 @@ model DataRetentionPolicy {
   @@map("data_retention_policies")
 }
 
+model SystemSettings {
+  id                Int      @id @default(1)
+  mfaEnabled        Boolean  @default(false)
+  emailNotifications Boolean @default(true)
+  autoBackup        Boolean  @default(false)
+  maintenanceMode   Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model InstituteSettings {
+  id                Int      @id @default(1)
+  name             String
+  address          String
+  phone            String
+  email            String
+  website          String?
+  logo             String?
+  timezone         String   @default("UTC")
+  academicYearStart DateTime
+  academicYearEnd   DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("institute_settings")
+}
+
+model BrandingSettings {
+  id                Int      @id @default(1)
+  logo             String?
+  primaryColor     String   @default("#000000")
+  secondaryColor   String   @default("#ffffff")
+  accentColor      String   @default("#0000ff")
+  fontFamily       String   @default("Inter")
+  customCss        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("branding_settings")
+}
+
+model BrandKit {
+  id           String   @id @default(cuid())
+  logo         Json
+  colors       Json
+  typography   Json
+  spacing      Json
+  borderRadius String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("brand_kits")
+}
+
+
+
 
