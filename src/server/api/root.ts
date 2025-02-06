@@ -2,6 +2,8 @@ import { createTRPCRouter } from "@/server/api/trpc";
 import { userRouter } from "./routers/user";
 import { roleRouter } from "./routers/role";
 import { attendanceRouter } from "./routers/attendance";
+import { historicalDataRouter } from "./routers/historical-data";
+import { academicYearRouter } from "./routers/academic-year";
 import { permissionRouter } from "./routers/permission";
 import { knowledgeBaseRouter } from "./routers/knowledge-base";
 import { workspaceRouter } from "./routers/workspace";
@@ -44,6 +46,8 @@ export const appRouter = createTRPCRouter({
   knowledgeBase: knowledgeBaseRouter,
   workspace: workspaceRouter,
   attendance: attendanceRouter,
+  academicYear: academicYearRouter,
+  historicalData: historicalDataRouter,
 });
 
 

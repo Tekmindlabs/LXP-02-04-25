@@ -48,6 +48,10 @@ model User {
   activityLogs ActivityLog[]
   submissions  ActivitySubmission[] @relation("StudentSubmissions")
 
+  // Historical Data Relations
+  historicalRecords    HistoricalStudentRecord[] @relation("StudentHistory")
+  versionedRecords     VersionedRecord[]         @relation("UserVersions")
+
   @@map("users")
 }
 
@@ -83,24 +87,51 @@ enum Visibility {
   PARENTS
 }
 
+model AcademicYearSettings {
+    id          String      @id @default(cuid())
+    startMonth  Int
+    startDay    Int
+    endMonth    Int
+    endDay      Int
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    
+    @@map("academic_year_settings")
+}
+
+model AcademicYear {
+    id          String      @id @default(cuid())
+    name        String      @unique
+    startDate   DateTime
+    endDate     DateTime
+    status      Status      @default(ACTIVE)
+    calendars   Calendar[]
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    @@map("academic_years")
+}
+
 // Academic Structure
 model Calendar {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  type        CalendarType @default(PRIMARY)
-  status      Status       @default(ACTIVE)
-  isDefault   Boolean      @default(false)
-  events      Event[]
-  programs    Program[]
-  terms       Term[]
-  classGroups ClassGroup[]
-  visibility  Visibility   @default(ALL)
-  metadata    Json?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String       @id @default(cuid())
+  name          String
+  description   String?
+  startDate     DateTime
+  endDate       DateTime
+  type          CalendarType @default(PRIMARY)
+  status        Status       @default(ACTIVE)
+  isDefault     Boolean      @default(false)
+  academicYear  AcademicYear? @relation(fields: [academicYearId], references: [id])
+  academicYearId String?
+  events        Event[]
+  programs      Program[]
+  terms         Term[]
+  classGroups   ClassGroup[]
+  visibility    Visibility   @default(ALL)
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@unique([name, type])
   @@map("calendars")
@@ -815,4 +846,44 @@ model Document {
 
   @@map("documents")
 }
+
+model HistoricalStudentRecord {
+  id           String   @id @default(cuid())
+  studentId    String
+  academicYear String
+  term         String
+  grades       Json     // Array of GradeRecord objects
+  attendance   Json     // Array of AttendanceRecord objects
+  timestamp    DateTime
+  student      User     @relation("StudentHistory", fields: [studentId], references: [id], onDelete: Cascade)
+  
+  @@index([studentId, timestamp])
+  @@map("historical_student_records")
+}
+
+model VersionedRecord {
+  id          String   @id @default(cuid())
+  entityId    String
+  entityType  String
+  changes     Json
+  timestamp   DateTime
+  userId      String
+  user        User     @relation("UserVersions", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([entityId, entityType, timestamp])
+  @@map("versioned_records")
+}
+
+model DataRetentionPolicy {
+  id                    String     @id @default(cuid())
+  entityType            String     @unique
+  retentionPeriod       Int
+  archivalStrategy      String     // 'DELETE' or 'ARCHIVE'
+  complianceRequirements String[]
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  
+  @@map("data_retention_policies")
+}
+
 
