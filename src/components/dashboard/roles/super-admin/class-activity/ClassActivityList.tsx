@@ -5,7 +5,7 @@ import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ActivityType } from "@/types/class-activity";
+import { ActivityType, ActivityWithBasicSubmissions } from "@/types/class-activity";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,33 +21,8 @@ import {
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-interface ActivityWithRelations {
-	id: string;
-	title: string;
-	description: string | null;
-	type: ActivityType;
-	status: string;
-	deadline: Date | null;
-	classId: string | null;
-	classGroupId: string | null;
-	subjectId: string;
-	gradingCriteria: string | null;
-	class: {
-		name: string;
-	} | null;
-	classGroup: {
-		name: string;
-	} | null;
-	submissions: Array<{
-		id: string;
-		status: string;
-		grade: number | null;
-		submittedAt: Date;
-		student: {
-			name: string | null;
-		};
-	}>;
-}
+
+
 
 interface Props {
 	onEdit: (id: string) => void;
@@ -69,12 +44,12 @@ export default function ClassActivityList({ onEdit }: Props) {
 	const { toast } = useToast();
 
 	const utils = api.useContext();
-	const { data: activities } = api.classActivity.getAll.useQuery(filters) as { data: ActivityWithRelations[] | undefined };
+	const { data: activities } = api.classActivity.getAll.useQuery(filters) as { data: ActivityWithBasicSubmissions[] | undefined };
 	const { data: classGroups } = api.classGroup.getAllClassGroups.useQuery();
 	const { data: selectedActivityDetails } = api.classActivity.getById.useQuery(
 		selectedActivity as string,
 		{ enabled: !!selectedActivity }
-	) as { data: ActivityWithRelations | undefined };
+	) as { data: ActivityWithBasicSubmissions | undefined };
 
 
 	const deleteMutation = api.classActivity.delete.useMutation({
@@ -231,7 +206,6 @@ export default function ClassActivityList({ onEdit }: Props) {
 									<TableRow>
 										<TableHead>Student</TableHead>
 										<TableHead>Status</TableHead>
-										<TableHead>Grade</TableHead>
 										<TableHead>Submission Date</TableHead>
 									</TableRow>
 								</TableHeader>
@@ -240,7 +214,6 @@ export default function ClassActivityList({ onEdit }: Props) {
 										<TableRow key={submission.id}>
 											<TableCell>{submission.student.name}</TableCell>
 											<TableCell>{submission.status}</TableCell>
-											<TableCell>{submission.grade || 'Not graded'}</TableCell>
 											<TableCell>
 												{submission.submittedAt
 													? format(new Date(submission.submittedAt), "PPP")
@@ -250,6 +223,7 @@ export default function ClassActivityList({ onEdit }: Props) {
 									))}
 								</TableBody>
 							</Table>
+
 						</div>
 					</DialogContent>
 				</Dialog>

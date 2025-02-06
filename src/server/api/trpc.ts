@@ -5,22 +5,22 @@ import { getServerAuthSession } from "@/server/auth";
 import { prisma } from "@/server/db";
 
 export const createTRPCContext = async (opts: { req: Request }) => {
-  try {
-    const session = await getServerAuthSession();
-    console.log('TRPC Context Session:', session);
+  const session = await getServerAuthSession();
+
+  if (!session) {
+    console.warn('No session found in TRPC context');
     return {
       prisma,
-      session,
+      session: null,
     };
-  } catch (error) {
-    console.error('Error in createTRPCContext:', error);
-    throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to create TRPC context',
-      cause: error,
-    });
   }
+
+  return {
+    prisma,
+    session,
+  };
 };
+
 
 
 
@@ -30,12 +30,14 @@ export const createTRPCContext = async (opts: { req: Request }) => {
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
+    console.error('TRPC Error:', error);
     return {
       ...shape,
       data: {
         ...shape.data,
-        zodError:
-          error.cause instanceof ZodError ? error.cause.flatten() : null,
+        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
+        code: error.code,
+        message: error.message,
       },
     };
   },

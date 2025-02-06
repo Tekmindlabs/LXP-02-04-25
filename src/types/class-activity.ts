@@ -1,3 +1,32 @@
+export interface ActivitySubmissionBasic {
+	id: string;
+	status: string;
+	submittedAt: Date;
+	student: {
+		name: string | null;
+	};
+}
+
+export interface ActivityWithBasicSubmissions {
+	id: string;
+	title: string;
+	description: string | null;
+	type: ActivityType;
+	status: ActivityStatus;
+	deadline: Date | null;
+	classId: string | null;
+	classGroupId: string | null;
+	subjectId: string;
+	gradingCriteria: string | null;
+	class: {
+		name: string;
+	} | null;
+	classGroup: {
+		name: string;
+	} | null;
+	submissions: ActivitySubmissionBasic[];
+}
+
 export type ActivityType =
 	// Online Activities (Auto-graded)
 	| 'QUIZ_MULTIPLE_CHOICE'

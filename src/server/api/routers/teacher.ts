@@ -84,8 +84,8 @@ export const teacherRouter = createTRPCRouter({
 				include: {
 					teacherProfile: {
 						include: {
-							subjects: { include: { Subject: true } },
-							classes: { include: { Class: true } },
+							subjects: { include: { subject: true } },
+							classes: { include: { class: true } },
 						},
 					},
 				},
@@ -177,8 +177,8 @@ export const teacherRouter = createTRPCRouter({
 				include: {
 					teacherProfile: {
 						include: {
-							subjects: { include: { Subject: true } },
-							classes: { include: { Class: true } },
+							subjects: { include: { subject: true } },
+							classes: { include: { class: true } },
 						},
 					},
 				},
@@ -203,18 +203,18 @@ export const teacherRouter = createTRPCRouter({
 					userType: UserType.TEACHER 
 				},
 				include: {
-					TeacherProfile: {
+					teacherProfile: {
 						include: {
 							subjects: {
 								include: {
-									Subject: true,
+									subject: true,
 								},
 							},
 							classes: {
 								include: {
-									Class: {
+									class: {
 										include: {
-											ClassGroup: true,
+											classGroup: true,
 										},
 									},
 								},
@@ -346,7 +346,7 @@ export const teacherRouter = createTRPCRouter({
 				],
 			};
 
-			return ctx.prisma.user.findMany({
+			const teachers = await ctx.prisma.user.findMany({
 				where,
 				include: {
 					teacherProfile: {
@@ -372,6 +372,38 @@ export const teacherRouter = createTRPCRouter({
 					name: 'asc',
 				},
 			});
+
+			return teachers.map(teacher => ({
+				id: teacher.id,
+				name: teacher.name,
+				email: teacher.email,
+				phoneNumber: teacher.phoneNumber,
+				status: teacher.status,
+				teacherProfile: teacher.teacherProfile ? {
+					teacherType: teacher.teacherProfile.teacherType as TeacherType,
+					specialization: teacher.teacherProfile.specialization,
+					availability: teacher.teacherProfile.availability,
+					permissions: teacher.teacherProfile.permissions,
+					subjects: teacher.teacherProfile.subjects.map(s => ({
+						subject: {
+							id: s.subject.id,
+							name: s.subject.name,
+						},
+						status: s.status,
+					})),
+					classes: teacher.teacherProfile.classes.map(c => ({
+						class: {
+							id: c.class.id,
+							name: c.class.name,
+							classGroup: {
+								name: c.class.classGroup.name,
+							},
+						},
+						status: c.status,
+						isClassTeacher: c.isClassTeacher,
+					})),
+				} : null,
+			}));
 		}),
 
 	createCredentials: protectedProcedure

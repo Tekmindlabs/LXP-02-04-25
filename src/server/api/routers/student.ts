@@ -496,7 +496,7 @@ export const studentRouter = createTRPCRouter({
 				total: activities.length,
 				completed: activities.filter(a => a.status === 'SUBMITTED' || a.status === 'GRADED').length,
 				graded: activities.filter(a => a.status === 'GRADED').length,
-				averageGrade: activities.reduce((acc, curr) => acc + (curr.grade || 0), 0) / activities.length || 0,
+				averageGrade: activities.reduce((acc, curr) => acc + (curr.obtainedMarks || 0), 0) / activities.length || 0,
 			};
 
 			// Attendance metrics
@@ -513,13 +513,13 @@ export const studentRouter = createTRPCRouter({
 			const subjectPerformance = subjects.map((subject: Subject) => {
 				const subjectActivities = activities.filter(a => 
 					a.activity.subjectId === subject.id && 
-					a.activity.type === 'EXAM'
+					a.activity.type === 'CLASS_EXAM'
 				);
 
 				return {
 					subject: subject.name,
 					activities: subjectActivities.length,
-					averageGrade: subjectActivities.reduce((acc, curr) => acc + (curr.grade || 0), 0) / subjectActivities.length || 0,
+					averageGrade: subjectActivities.reduce((acc, curr) => acc + (curr.obtainedMarks || 0), 0) / subjectActivities.length || 0,
 				};
 			});
 

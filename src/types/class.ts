@@ -20,7 +20,7 @@ export interface Class {
         id: string;
         user: {
             name: string;
-            email: string;
+            email?: string;
         };
     }[];
     teachers: {

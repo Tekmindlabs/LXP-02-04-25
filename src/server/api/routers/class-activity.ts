@@ -1,5 +1,6 @@
 import { ResourceType } from "@prisma/client";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 const ActivityTypes = {
@@ -85,36 +86,60 @@ export const classActivityRouter = createTRPCRouter({
 			classGroupId: z.string().optional()
 		}))
 		.query(async ({ ctx, input }) => {
-			const { search, type, classId, classGroupId } = input;
-			return ctx.prisma.classActivity.findMany({
-				where: {
-					...(classId && { classId }),
-					...(type && { type }),
-					...(classGroupId && { classGroupId }),
-					...(search && {
-						OR: [
-							{ title: { contains: search, mode: 'insensitive' } },
-							{ description: { contains: search, mode: 'insensitive' } },
-						],
-					}),
-				},
-				include: {
-					resources: true,
-					class: {
-						select: {
-							name: true
+			try {
+				const { search, type, classId, classGroupId } = input;
+				const activities = await ctx.prisma.classActivity.findMany({
+					where: {
+						...(classId && { classId }),
+						...(type && { type }),
+						...(classGroupId && { classGroupId }),
+						...(search && {
+							OR: [
+								{ title: { contains: search, mode: 'insensitive' } },
+								{ description: { contains: search, mode: 'insensitive' } },
+							],
+						}),
+					},
+					include: {
+						resources: true,
+						class: {
+							select: {
+								name: true
+							}
+						},
+						classGroup: {
+							select: {
+								name: true
+							}
+						},
+						submissions: {
+							select: {
+								id: true,
+								status: true,
+								submittedAt: true,
+								student: {
+									select: {
+										name: true
+									}
+								}
+							}
 						}
 					},
-					classGroup: {
-						select: {
-							name: true
-						}
+					orderBy: {
+						createdAt: 'desc'
 					}
-				},
-				orderBy: {
-					createdAt: 'desc'
-				}
-			});
+				});
+
+				return activities;
+
+			} catch (error) {
+				console.error('Error in getAll query:', error);
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Failed to fetch class activities',
+					cause: error
+				});
+			}
 		}),
 
 
@@ -192,7 +217,11 @@ export const classActivityRouter = createTRPCRouter({
 					student: { connect: { id: input.studentId } },
 					status: input.status,
 					content: input.content,
-					submittedAt: new Date()
+					submittedAt: new Date(),
+					totalMarks: 0, // Default value
+					obtainedMarks: 0, // Default value 
+					isPassing: false, // Default value
+					gradingType: 'MANUAL' // Default value
 				}
 			});
 		}),

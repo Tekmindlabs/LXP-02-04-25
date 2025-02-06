@@ -1,4 +1,4 @@
-import { PrismaClient, ResourceType, ClassActivity, Prisma, ActivityType } from '@prisma/client';
+import { PrismaClient, ResourceType, ClassActivity, Prisma } from '@prisma/client';
 import { Class, Subject, ClassGroup } from '@prisma/client';
 
 
@@ -211,7 +211,8 @@ export async function seedActivities(prisma: PrismaClient, params: ActivityParam
 						obtainedMarks,
 						isPassing,
 						gradedAt: isAutoGraded ? new Date() : null,
-						gradedBy: isAutoGraded ? 'SYSTEM' : null
+						gradedBy: isAutoGraded ? 'SYSTEM' : null,
+						gradingType: isAutoGraded ? 'AUTOMATIC' : 'MANUAL'
 					}
 				});
 

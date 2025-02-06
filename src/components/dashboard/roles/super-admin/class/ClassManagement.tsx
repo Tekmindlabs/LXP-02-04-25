@@ -37,18 +37,30 @@ export const ClassManagement = () => {
         capacity: c.capacity,
         status: c.status,
         classGroup: {
+            id: c.classGroup.id,
             name: c.classGroup.name,
             program: {
-                name: c.classGroup.program.name
+                id: c.classGroup.program.id,
+                name: c.classGroup.program.name || ''
             }
         },
-        students: c.students || [], // Ensure students array exists
+        students: c.students.map(s => ({
+            id: s.id,
+            user: {
+                name: s.userId || '',
+                email: s.userId || undefined
+            }
+        })),
         teachers: c.teachers.map(t => ({
             teacher: {
+                id: t.teacher.id,
                 user: {
-                    name: t.teacher.user.name || ''
+                    name: t.teacher.user?.name || '',
+                    email: t.teacher.user?.email || undefined
                 }
-            }
+            },
+            isClassTutor: t.isClassTeacher,
+            subjects: []
         }))
     })) || [];
 
