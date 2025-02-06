@@ -41,7 +41,7 @@ export const AcademicYearSettings = () => {
 		},
 	});
 
-	const createCalendar = api.calendar.create.useMutation({
+	const createCalendar = api.calendar.createCalendar.useMutation({
 		onSuccess: () => {
 			toast({
 				title: "Success",
@@ -211,8 +211,12 @@ export const AcademicYearSettings = () => {
 								<Label>Type</Label>
 								<Select
 									value={calendar.type}
-									onValueChange={(value: CalendarType) => 
-										setCalendar({ ...calendar, type: value })
+									onValueChange={(value: CalendarType) => {
+										// Ensure we only set valid calendar types
+										if (Object.values(CalendarType).includes(value)) {
+											setCalendar({ ...calendar, type: value });
+										}
+									}
 									}
 								>
 									<SelectTrigger>

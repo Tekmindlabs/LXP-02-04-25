@@ -70,13 +70,16 @@ export const calendarRouter = createTRPCRouter({
 				});
 			}
 
+			const { academicYearId, ...restInput } = input;
 			return ctx.prisma.calendar.create({
 				data: {
-					...input,
+					...restInput,
 					status: input.status || Status.ACTIVE,
-					academicYear: input.academicYearId ? {
-						connect: { id: input.academicYearId }
-					} : undefined,
+					...(academicYearId && {
+						academicYear: {
+							connect: { id: academicYearId }
+						}
+					})
 				},
 			});
 		}),
