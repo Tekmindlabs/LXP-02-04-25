@@ -1,5 +1,18 @@
 'use client';
 
+interface Coordinator {
+	id: string;
+	name: string;
+	email: string;
+	status: Status;
+	coordinatorProfile: {
+		programs: {
+			id: string;
+			name: string;
+		}[];
+	};
+}
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,8 +36,11 @@ export const CoordinatorManagement = () => {
 		search: "",
 	});
 
-	const { data: coordinators, isLoading } = api.coordinator.searchCoordinators.useQuery(filters);
-	const { data: programs } = api.program.getAll.useQuery();
+	const { data: coordinators, isLoading } = api.coordinator.searchCoordinators.useQuery(filters) as { data: Coordinator[] | undefined, isLoading: boolean };
+	const { data: programData } = api.program.getAll.useQuery({
+		page: 1,
+		pageSize: 100,
+	});
 
 	if (isLoading) {
 		return <div>Loading...</div>;
@@ -46,15 +62,19 @@ export const CoordinatorManagement = () => {
 								className="max-w-sm"
 							/>
 							<Select
-								value={filters.programId || "all"}
-								onValueChange={(value) => setFilters({ ...filters, programId: value === "all" ? undefined : value })}
+								value={filters.programId || "ALL"}
+								onValueChange={(value) => setFilters({ ...filters, programId: value === "ALL" ? undefined : value })}
 							>
 								<SelectTrigger className="w-[200px]">
 									<SelectValue placeholder="Filter by Program" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Programs</SelectItem>
-									{programs?.map((program) => (
+									<SelectItem value="ALL">All Programs</SelectItem>
+									{programData?.programs?.map((program) => ({
+										id: program.id,
+										name: program.name || '',
+										level: program.classGroups?.[0]?.name || 'Unknown'
+									})).map((program) => (
 										<SelectItem key={program.id} value={program.id}>
 											{program.name}
 										</SelectItem>
@@ -62,14 +82,14 @@ export const CoordinatorManagement = () => {
 								</SelectContent>
 							</Select>
 							<Select
-								value={filters.status || "all"}
-								onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? undefined : value as Status })}
+								value={filters.status || "ALL"}
+								onValueChange={(value) => setFilters({ ...filters, status: value === "ALL" ? undefined : value as Status })}
 							>
 								<SelectTrigger className="w-[180px]">
 									<SelectValue placeholder="Status" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Status</SelectItem>
+									<SelectItem value="ALL">All Status</SelectItem>
 									{Object.values(Status).map((status) => (
 										<SelectItem key={status} value={status}>
 											{status}
@@ -100,7 +120,11 @@ export const CoordinatorManagement = () => {
 								/>
 								<CoordinatorForm 
 									selectedCoordinator={coordinators?.find(c => c.id === selectedCoordinatorId)}
-									programs={programs || []}
+									programs={programData?.programs?.map((program) => ({
+										id: program.id,
+										name: program.name || '',
+										level: program.classGroups?.[0]?.name || 'Unknown'
+									})) || []}
 									onSuccess={() => setSelectedCoordinatorId(null)}
 								/>
 							</>

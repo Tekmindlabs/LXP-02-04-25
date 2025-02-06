@@ -3,6 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { z } from "zod";
 
 const ActivityTypes = {
+	// Online Activities (Auto-graded)
 	QUIZ_MULTIPLE_CHOICE: 'QUIZ_MULTIPLE_CHOICE',
 	QUIZ_DRAG_DROP: 'QUIZ_DRAG_DROP',
 	QUIZ_FILL_BLANKS: 'QUIZ_FILL_BLANKS',
@@ -11,11 +12,14 @@ const ActivityTypes = {
 	GAME_WORD_SEARCH: 'GAME_WORD_SEARCH',
 	GAME_CROSSWORD: 'GAME_CROSSWORD',
 	GAME_FLASHCARDS: 'GAME_FLASHCARDS',
-	QUIZ: 'QUIZ',
-	ASSIGNMENT: 'ASSIGNMENT',
+	VIDEO_YOUTUBE: 'VIDEO_YOUTUBE',
 	READING: 'READING',
-	PROJECT: 'PROJECT',
-	EXAM: 'EXAM'
+	// In-Class Activities (Manually graded)
+	CLASS_ASSIGNMENT: 'CLASS_ASSIGNMENT',
+	CLASS_PROJECT: 'CLASS_PROJECT',
+	CLASS_PRESENTATION: 'CLASS_PRESENTATION',
+	CLASS_TEST: 'CLASS_TEST',
+	CLASS_EXAM: 'CLASS_EXAM'
 } as const;
 
 type ActivityType = typeof ActivityTypes[keyof typeof ActivityTypes];
@@ -30,6 +34,15 @@ export const classActivityRouter = createTRPCRouter({
 			subjectId: z.string(),
 			deadline: z.date().optional(),
 			gradingCriteria: z.string().optional(),
+			configuration: z.object({
+				totalMarks: z.number().min(1),
+				passingMarks: z.number().min(1),
+				activityMode: z.enum(['ONLINE', 'IN_CLASS']),
+				gradingType: z.enum(['AUTOMATIC', 'MANUAL']),
+				isGraded: z.boolean(),
+				timeLimit: z.number().optional(),
+				attempts: z.number().optional(),
+			}),
 			resources: z.array(z.object({
 				title: z.string(),
 				type: z.nativeEnum(ResourceType),
@@ -135,7 +148,16 @@ export const classActivityRouter = createTRPCRouter({
 			classId: z.string(),
 			subjectId: z.string(),
 			deadline: z.date().optional(),
-			gradingCriteria: z.string().optional()
+			gradingCriteria: z.string().optional(),
+			configuration: z.object({
+				totalMarks: z.number().min(1),
+				passingMarks: z.number().min(1),
+				activityMode: z.enum(['ONLINE', 'IN_CLASS']),
+				gradingType: z.enum(['AUTOMATIC', 'MANUAL']),
+				isGraded: z.boolean(),
+				timeLimit: z.number().optional(),
+				attempts: z.number().optional(),
+			})
 		}))
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
@@ -178,14 +200,18 @@ export const classActivityRouter = createTRPCRouter({
 	gradeSubmission: protectedProcedure
 		.input(z.object({
 			submissionId: z.string(),
-			grade: z.number(),
+			obtainedMarks: z.number(),
+			totalMarks: z.number(),
+			isPassing: z.boolean(),
 			feedback: z.string().optional()
 		}))
 		.mutation(async ({ ctx, input }) => {
 			return ctx.prisma.activitySubmission.update({
 				where: { id: input.submissionId },
 				data: {
-					grade: input.grade,
+					obtainedMarks: input.obtainedMarks,
+					totalMarks: input.totalMarks,
+					isPassing: input.isPassing,
 					feedback: input.feedback,
 					status: 'GRADED',
 					gradedAt: new Date()

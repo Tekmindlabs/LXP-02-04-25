@@ -17,7 +17,7 @@ const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	email: z.string().email("Invalid email address"),
 	dateOfBirth: z.string().min(1, "Date of birth is required"),
-	classId: z.string().transform(val => val === "none" ? undefined : val),
+	classId: z.string().min(1, "Class is required"),
 	parentId: z.string().optional(),
 	guardianInfo: z.object({
 		name: z.string(),
@@ -33,7 +33,15 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface StudentFormProps {
 	selectedStudent?: Student;
-	classes: { id: string; name: string; classGroup: { name: string } }[];
+	classes: { 
+		id: string; 
+		name: string; 
+		classGroup: { 
+			id: string;
+			name: string;
+			program: { name: string | null; };
+		}; 
+	}[];
 	onSuccess: () => void;
 }
 
@@ -44,16 +52,16 @@ export const StudentForm = ({ selectedStudent, classes, onSuccess }: StudentForm
 	const form = useForm<FormValues>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
-		  name: selectedStudent?.name || "",
-		  email: selectedStudent?.email || "",
-		  // Format the date string properly
-		  dateOfBirth: selectedStudent?.studentProfile.dateOfBirth 
-			? new Date(selectedStudent.studentProfile.dateOfBirth).toISOString().split('T')[0] 
-			: "",
-		  classId: selectedStudent?.studentProfile.class?.id || "",
-		  status: selectedStudent?.status || Status.ACTIVE,
+			name: selectedStudent?.name || "",
+			email: selectedStudent?.email || "",
+			dateOfBirth: selectedStudent?.studentProfile.dateOfBirth 
+				? new Date(selectedStudent.studentProfile.dateOfBirth).toISOString().split('T')[0] 
+				: "",
+			classId: selectedStudent?.studentProfile.class?.id || "",
+			status: selectedStudent?.status || Status.ACTIVE,
 		},
-	  });
+	});
+
 
 	const createStudent = api.student.createStudent.useMutation({
 		onSuccess: () => {
@@ -73,23 +81,28 @@ export const StudentForm = ({ selectedStudent, classes, onSuccess }: StudentForm
 	const onSubmit = async (values: FormValues) => {
 		setIsSubmitting(true);
 		try {
-		  const formData = {
-			...values,
-			dateOfBirth: new Date(values.dateOfBirth), // Transform to Date object here
-		  };
-	  
-		  if (selectedStudent) {
-			await updateStudent.mutateAsync({
-			  id: selectedStudent.id,
-			  ...formData,
-			});
-		  } else {
-			await createStudent.mutateAsync(formData);
-		  }
+			const formData = {
+				name: values.name,
+				email: values.email,
+				dateOfBirth: new Date(values.dateOfBirth),
+				classId: values.classId,
+				status: values.status,
+				...(values.parentId && { parentId: values.parentId }),
+				...(values.guardianInfo && { guardianInfo: values.guardianInfo })
+			};
+
+			if (selectedStudent) {
+				await updateStudent.mutateAsync({
+					id: selectedStudent.id,
+					...formData
+				});
+			} else {
+				await createStudent.mutateAsync(formData);
+			}
 		} finally {
-		  setIsSubmitting(false);
+			setIsSubmitting(false);
 		}
-	  };
+	};
 
 	return (
 		<Form {...form}>
@@ -150,7 +163,7 @@ export const StudentForm = ({ selectedStudent, classes, onSuccess }: StudentForm
 			<FormLabel>Class</FormLabel>
 			<Select 
 				onValueChange={field.onChange} 
-				value={field.value || "none"}
+				value={field.value}
 			>
 				<FormControl>
 					<SelectTrigger>
@@ -158,7 +171,6 @@ export const StudentForm = ({ selectedStudent, classes, onSuccess }: StudentForm
 					</SelectTrigger>
 				</FormControl>
 				<SelectContent>
-					<SelectItem value="none">No Class</SelectItem>
 					{classes.map((cls) => (
 						<SelectItem key={cls.id} value={cls.id}>
 							{`${cls.name} (${cls.classGroup.name})`}
@@ -170,6 +182,7 @@ export const StudentForm = ({ selectedStudent, classes, onSuccess }: StudentForm
 		</FormItem>
 	)}
 />
+
 
 				<FormField
 					control={form.control}

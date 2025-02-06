@@ -1,23 +1,22 @@
 export type ActivityType =
-	// Assessment Activities
+	// Online Activities (Auto-graded)
 	| 'QUIZ_MULTIPLE_CHOICE'
 	| 'QUIZ_DRAG_DROP'
 	| 'QUIZ_FILL_BLANKS'
 	| 'QUIZ_MEMORY'
 	| 'QUIZ_TRUE_FALSE'
-	// Game Activities
 	| 'GAME_WORD_SEARCH'
 	| 'GAME_CROSSWORD'
 	| 'GAME_FLASHCARDS'
-	// Media Activities
 	| 'VIDEO_YOUTUBE'
-	// Reading Activities
 	| 'READING'
-	// Legacy Types
-	| 'QUIZ'
-	| 'ASSIGNMENT'
-	| 'PROJECT'
-	| 'EXAM';
+	// In-Class Activities (Manually graded)
+	| 'CLASS_ASSIGNMENT'
+	| 'CLASS_PROJECT'
+	| 'CLASS_PRESENTATION'
+	| 'CLASS_TEST'
+	| 'CLASS_EXAM';
+
 
 export type ActivityStatus = 'DRAFT' | 'PUBLISHED' | 'PENDING' | 'SUBMITTED' | 'GRADED' | 'LATE' | 'MISSED';
 
@@ -30,16 +29,17 @@ export interface ActivityTemplate {
 }
 
 export interface ActivityConfiguration {
-	timeLimit?: number; // in seconds
+	timeLimit?: number;
 	attempts?: number;
-	passingScore?: number;
+	totalMarks: number;
+	passingMarks: number;
+	activityMode: 'ONLINE' | 'IN_CLASS';
+	gradingType: 'AUTOMATIC' | 'MANUAL';
+	isGraded: boolean;
 	instructions?: string;
 	availabilityDate?: Date;
 	deadline?: Date;
-	isGraded: boolean;
-	gradingType: 'AUTOMATIC' | 'MANUAL' | 'NONE';
 	viewType: 'PREVIEW' | 'STUDENT' | 'CONFIGURATION';
-	totalPoints?: number;
 	autoplay?: boolean;
 	showControls?: boolean;
 	showExamples?: boolean;
@@ -51,7 +51,12 @@ export interface ActivitySubmission {
 	studentId: string;
 	submittedAt: Date;
 	content: any;
-	grade?: number;
+	totalMarks: number;
+	obtainedMarks: number;
+	isPassing: boolean;
+	gradingType: 'AUTOMATIC' | 'MANUAL';
+	gradedBy?: string;
+	gradedAt?: Date;
 	feedback?: string;
 	status: 'SUBMITTED' | 'GRADED' | 'PENDING';
 }

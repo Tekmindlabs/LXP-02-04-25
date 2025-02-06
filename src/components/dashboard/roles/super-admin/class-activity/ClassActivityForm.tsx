@@ -25,11 +25,13 @@ const ActivityTypes = {
 	GAME_WORD_SEARCH: 'GAME_WORD_SEARCH',
 	GAME_CROSSWORD: 'GAME_CROSSWORD',
 	GAME_FLASHCARDS: 'GAME_FLASHCARDS',
-	QUIZ: 'QUIZ',
-	ASSIGNMENT: 'ASSIGNMENT',
+	VIDEO_YOUTUBE: 'VIDEO_YOUTUBE',
 	READING: 'READING',
-	PROJECT: 'PROJECT',
-	EXAM: 'EXAM'
+	CLASS_ASSIGNMENT: 'CLASS_ASSIGNMENT',
+	CLASS_PROJECT: 'CLASS_PROJECT',
+	CLASS_PRESENTATION: 'CLASS_PRESENTATION',
+	CLASS_TEST: 'CLASS_TEST',
+	CLASS_EXAM: 'CLASS_EXAM'
 } as const;
 
 type ActivityType = typeof ActivityTypes[keyof typeof ActivityTypes];
@@ -47,31 +49,6 @@ interface Resource {
 	};
 }
 
-const formSchema = z.object({
-	title: z.string().min(1, "Title is required"),
-	description: z.string().optional(),
-	type: z.enum(Object.values(ActivityTypes) as [ActivityType, ...ActivityType[]]),
-	classId: z.string(),
-	subjectId: z.string(),
-	classGroupId: z.string().optional(),
-	deadline: z.string().optional(),
-	gradingCriteria: z.string().optional(),
-	resources: z.array(z.object({
-		title: z.string(),
-		type: z.nativeEnum(ResourceType),
-		url: z.string(),
-		fileInfo: z.object({
-			size: z.number(),
-			createdAt: z.date(),
-			updatedAt: z.date(),
-			mimeType: z.string(),
-			publicUrl: z.string()
-		}).optional()
-	})).optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
-
 interface Props {
 	activityId?: string | null;
 	onClose: () => void;
@@ -83,15 +60,63 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 	const { data: classGroups } = api.classGroup.getAllClassGroups.useQuery();
 	const { data: classes } = api.class.searchClasses.useQuery({});
 	const { data: subjects } = api.subject.getAll.useQuery();
+	const formSchema = z.object({
+		title: z.string().min(1, "Title is required"),
+		description: z.string().optional(),
+		type: z.enum(Object.values(ActivityTypes) as [ActivityType, ...ActivityType[]]),
+		classId: z.string(),
+		subjectId: z.string(),
+		classGroupId: z.string().optional(),
+		deadline: z.string().optional(),
+		gradingCriteria: z.string().optional(),
+		configuration: z.object({
+			totalMarks: z.number().min(1, "Total marks must be greater than 0"),
+			passingMarks: z.number().min(1, "Passing marks must be greater than 0"),
+			activityMode: z.enum(['ONLINE', 'IN_CLASS']),
+			gradingType: z.enum(['AUTOMATIC', 'MANUAL']),
+			isGraded: z.boolean(),
+			timeLimit: z.number().optional(),
+			attempts: z.number().optional(),
+		}),
+		resources: z.array(z.object({
+			title: z.string(),
+			type: z.nativeEnum(ResourceType),
+			url: z.string(),
+			fileInfo: z.object({
+				size: z.number(),
+				createdAt: z.date(),
+				updatedAt: z.date(),
+				mimeType: z.string(),
+				publicUrl: z.string()
+			}).optional()
+		})).optional(),
+	});
+
+	type FormData = z.infer<typeof formSchema>;
+
 	const form = useForm<FormData>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			title: "",
 			description: "",
-			type: ActivityTypes.ASSIGNMENT,
+			type: ActivityTypes.CLASS_ASSIGNMENT,
 			gradingCriteria: "",
+			classId: "",
+			subjectId: "",
+			classGroupId: "",
+			configuration: {
+				totalMarks: 100,
+				passingMarks: 40,
+				activityMode: 'IN_CLASS',
+				gradingType: 'MANUAL',
+				isGraded: true,
+				timeLimit: undefined,
+				attempts: undefined,
+			},
+			resources: []
 		},
 	});
+
 
 	const { data: activity } = api.classActivity.getById.useQuery(activityId as string, {
 		enabled: !!activityId,
@@ -130,9 +155,10 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 				type: activity.type as ActivityType,
 				deadline: activity.deadline?.toISOString().split('T')[0],
 				gradingCriteria: activity.gradingCriteria || "",
-				classId: activity.classId || undefined,
-				classGroupId: activity.classGroupId || undefined,
+				classId: activity.classId || "",
+				classGroupId: activity.classGroupId || "",
 				subjectId: activity.subjectId,
+				resources: activity.resources || []
 			});
 		}
 	}, [activity, form]);
@@ -156,29 +182,27 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 			return;
 		}
 
+		const formData = {
+			title: data.title,
+			description: data.description,
+			type: data.type,
+			classId: data.classId,
+			subjectId: data.subjectId,
+			deadline: data.deadline ? new Date(data.deadline) : undefined,
+			gradingCriteria: data.gradingCriteria,
+			configuration: data.configuration,
+			resources: data.resources,
+		};
+
 		if (activityId) {
-            updateMutation.mutate({
-                id: activityId,
-                title: data.title,
-                description: data.description,
-                type: data.type,
-                classId: data.classId,
-                subjectId: data.subjectId,
-                deadline: data.deadline ? new Date(data.deadline) : undefined,
-                gradingCriteria: data.gradingCriteria,
-            });
-        } else {
-            createMutation.mutate({
-                title: data.title,
-                description: data.description,
-                type: data.type,
-                classId: data.classId,
-                subjectId: data.subjectId,
-                deadline: data.deadline ? new Date(data.deadline) : undefined,
-                gradingCriteria: data.gradingCriteria,
-                resources: data.resources,
-            });
-        }
+			updateMutation.mutate({
+				id: activityId,
+				...formData
+			});
+		} else {
+			createMutation.mutate(formData);
+		}
+
 	};
 
 	const handleResourceUpload = (resource: Resource, index: number, filePath: string, fileInfo: any) => {
@@ -234,18 +258,111 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Type</FormLabel>
-							<Select onValueChange={field.onChange} defaultValue={field.value}>
+							<Select onValueChange={field.onChange} value={field.value ?? ActivityTypes.CLASS_ASSIGNMENT}>
 								<FormControl>
 									<SelectTrigger>
 										<SelectValue placeholder="Select activity type" />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									{Object.entries(ActivityTypes).map(([key, value]) => (
-										<SelectItem key={key} value={value}>
-											{key.replace(/_/g, ' ')}
-										</SelectItem>
-									))}
+									{Object.entries(ActivityTypes)
+										.filter(([_, value]) => !!value)
+										.map(([key, value]) => (
+											<SelectItem key={key} value={value}>
+												{key.replace(/_/g, ' ')}
+											</SelectItem>
+										))}
+								</SelectContent>
+							</Select>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="configuration.activityMode"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Activity Mode</FormLabel>
+							<Select 
+								onValueChange={(value) => {
+									field.onChange(value);
+									form.setValue('configuration.gradingType', 
+										value === 'ONLINE' ? 'AUTOMATIC' : 'MANUAL'
+									);
+								}} 
+								value={field.value}
+							>
+								<FormControl>
+									<SelectTrigger>
+										<SelectValue placeholder="Select activity mode" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									<SelectItem value="ONLINE">Online</SelectItem>
+									<SelectItem value="IN_CLASS">In Class</SelectItem>
+								</SelectContent>
+							</Select>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="configuration.totalMarks"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Total Marks</FormLabel>
+							<FormControl>
+								<Input 
+									type="number" 
+									{...field} 
+									onChange={e => field.onChange(Number(e.target.value))}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="configuration.passingMarks"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Passing Marks</FormLabel>
+							<FormControl>
+								<Input 
+									type="number" 
+									{...field} 
+									onChange={e => field.onChange(Number(e.target.value))}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="configuration.isGraded"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Is Graded</FormLabel>
+							<Select 
+								onValueChange={(value) => field.onChange(value === 'true')} 
+								value={field.value.toString()}
+							>
+								<FormControl>
+									<SelectTrigger>
+										<SelectValue placeholder="Select grading status" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									<SelectItem value="true">Yes</SelectItem>
+									<SelectItem value="false">No</SelectItem>
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -273,18 +390,20 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Class Group</FormLabel>
-							<Select onValueChange={field.onChange} value={field.value}>
+							<Select onValueChange={field.onChange} value={field.value ?? ""}>
 								<FormControl>
 									<SelectTrigger>
 										<SelectValue placeholder="Select class group" />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									{classGroups?.map((group) => (
-										<SelectItem key={group.id} value={group.id}>
-											{group.name}
-										</SelectItem>
-									))}
+									{classGroups
+										?.filter(group => !!group.id)
+										.map((group) => (
+											<SelectItem key={group.id} value={group.id}>
+												{group.name}
+											</SelectItem>
+										))}
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -298,18 +417,20 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Subject</FormLabel>
-							<Select onValueChange={field.onChange} value={field.value}>
+							<Select onValueChange={field.onChange} value={field.value ?? ""}>
 								<FormControl>
 									<SelectTrigger>
 										<SelectValue placeholder="Select subject" />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									{subjects?.map((subject) => (
-										<SelectItem key={subject.id} value={subject.id}>
-											{subject.name}
-										</SelectItem>
-									))}
+									{subjects
+										?.filter(subject => !!subject.id)
+										.map((subject) => (
+											<SelectItem key={subject.id} value={subject.id}>
+												{subject.name}
+											</SelectItem>
+										))}
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -323,18 +444,20 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Class</FormLabel>
-							<Select onValueChange={field.onChange} value={field.value}>
+							<Select onValueChange={field.onChange} value={field.value ?? ""}>
 								<FormControl>
 									<SelectTrigger>
 										<SelectValue placeholder="Select class" />
 									</SelectTrigger>
 								</FormControl>
 								<SelectContent>
-									{classes?.map((cls) => (
-										<SelectItem key={cls.id} value={cls.id}>
-											{cls.name}
-										</SelectItem>
-									))}
+									{classes
+										?.filter(cls => !!cls.id)
+										.map((cls) => (
+											<SelectItem key={cls.id} value={cls.id}>
+												{cls.name}
+											</SelectItem>
+										))}
 								</SelectContent>
 							</Select>
 							<FormMessage />
@@ -376,7 +499,7 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 												placeholder="Resource title"
 											/>
 											<Select
-												value={resource.type}
+												value={resource.type ?? ResourceType.DOCUMENT}
 												onValueChange={(value) => {
 													const newResources = [...field.value!];
 													newResources[index].type = value as ResourceType;
@@ -387,11 +510,13 @@ export default function ClassActivityForm({ activityId, onClose }: Props) {
 													<SelectValue placeholder="Type" />
 												</SelectTrigger>
 												<SelectContent>
-													{Object.values(ResourceType).map((type) => (
-														<SelectItem key={type} value={type}>
-															{type}
-														</SelectItem>
-													))}
+													{Object.values(ResourceType)
+														.filter(type => !!type)
+														.map((type) => (
+															<SelectItem key={type} value={type}>
+																{type}
+															</SelectItem>
+														))}
 												</SelectContent>
 											</Select>
 											{resource.fileInfo ? (

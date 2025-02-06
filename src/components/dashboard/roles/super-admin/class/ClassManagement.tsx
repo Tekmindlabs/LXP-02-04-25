@@ -166,14 +166,14 @@ export const ClassManagement = () => {
                                 className="md:w-[300px]"
                             />
                             <Select
-                                value={filters.classGroupId || "all"}
-                                onValueChange={(value) => setFilters({ ...filters, classGroupId: value === "all" ? undefined : value })}
+                                value={filters.classGroupId || "ALL"}
+                                onValueChange={(value) => setFilters({ ...filters, classGroupId: value === "ALL" ? undefined : value })}
                             >
                                 <SelectTrigger className="w-[200px]">
                                     <SelectValue placeholder="Filter by Class Group" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Class Groups</SelectItem>
+                                    <SelectItem value="ALL">All Class Groups</SelectItem>
                                     {classGroupsData?.map((group) => (
                                         <SelectItem key={group.id} value={group.id}>
                                             {group.name}
@@ -182,14 +182,14 @@ export const ClassManagement = () => {
                                 </SelectContent>
                             </Select>
                             <Select
-                                value={filters.teacherId || "all"}
-                                onValueChange={(value) => setFilters({ ...filters, teacherId: value === "all" ? undefined : value })}
+                                value={filters.teacherId || "ALL"}
+                                onValueChange={(value) => setFilters({ ...filters, teacherId: value === "ALL" ? undefined : value })}
                             >
                                 <SelectTrigger className="w-[200px]">
                                     <SelectValue placeholder="Filter by Teacher" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Teachers</SelectItem>
+                                    <SelectItem value="ALL">All Teachers</SelectItem>
                                     {teachers.map((teacher) => (
                                         <SelectItem key={teacher.id} value={teacher.id}>
                                             {teacher.user.name}
@@ -198,14 +198,14 @@ export const ClassManagement = () => {
                                 </SelectContent>
                             </Select>
                             <Select
-                                value={filters.status || "all"}
-                                onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? undefined : value as Status })}
+                                value={filters.status || "ALL"}
+                                onValueChange={(value) => setFilters({ ...filters, status: value === "ALL" ? undefined : value as Status })}
                             >
                                 <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Status</SelectItem>
+                                    <SelectItem value="ALL">All Status</SelectItem>
                                     {Object.values(Status).map((status) => (
                                         <SelectItem key={status} value={status}>
                                             {status}

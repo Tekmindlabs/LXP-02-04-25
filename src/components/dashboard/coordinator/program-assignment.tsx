@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { toast } from '../../ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface Program {
 	id: string;
@@ -22,6 +22,7 @@ interface Coordinator {
 }
 
 export const ProgramAssignment = () => {
+	const { toast } = useToast();
 	const [programs, setPrograms] = useState<Program[]>([]);
 	const [coordinators, setCoordinators] = useState<Coordinator[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -102,9 +103,9 @@ export const ProgramAssignment = () => {
 								</div>
 								<div className="flex items-center gap-2">
 									<Select
-										value={program.coordinatorId || 'unassigned'}
+										value={program.coordinatorId || 'NO_SELECTION'}
 										onValueChange={(value) => {
-											if (value !== 'unassigned') {
+											if (value !== 'NO_SELECTION') {
 												handleAssignCoordinator(program.id, value);
 											}
 										}}
@@ -113,7 +114,7 @@ export const ProgramAssignment = () => {
 											<SelectValue placeholder="Select Coordinator" />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="unassigned">Select Coordinator</SelectItem>
+											<SelectItem value="NO_SELECTION">Select Coordinator</SelectItem>
 											{coordinators.map(coordinator => (
 												<SelectItem key={coordinator.id} value={coordinator.id}>
 													{coordinator.user.name}

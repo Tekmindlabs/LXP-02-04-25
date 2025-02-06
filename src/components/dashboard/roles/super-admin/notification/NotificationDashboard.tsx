@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DateRange } from "react-day-picker";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import CreateNotification from "./CreateNotification";
 
 export default function NotificationDashboard() {
 	const [isCreating, setIsCreating] = useState(false);
-	const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>();
+	const [dateRange, setDateRange] = useState<DateRange | undefined>();
 	const [type, setType] = useState<"ANNOUNCEMENT" | "ASSIGNMENT" | "GRADE" | "REMINDER" | "SYSTEM" | undefined>();
 	const [view, setView] = useState<"SENT" | "RECEIVED">("RECEIVED");
 
@@ -52,14 +53,14 @@ export default function NotificationDashboard() {
 									onChange={setDateRange}
 								/>
 								<Select
-									value={type || "all"}
-									onValueChange={(value) => setType(value === "all" ? undefined : value as any)}
+									value={type || "ALL"}
+									onValueChange={(value) => setType(value === "ALL" ? undefined : value as any)}
 								>
 									<SelectTrigger>
 										<SelectValue placeholder="Filter by type" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="all">All Types</SelectItem>
+										<SelectItem value="ALL">All Types</SelectItem>
 										<SelectItem value="ANNOUNCEMENT">Announcements</SelectItem>
 										<SelectItem value="ASSIGNMENT">Assignments</SelectItem>
 										<SelectItem value="GRADE">Grades</SelectItem>

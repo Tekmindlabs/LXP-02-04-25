@@ -20,6 +20,10 @@ interface SearchFilters {
 	status?: Status;
 }
 
+
+
+
+
 export const StudentManagement = () => {
 	const router = useRouter();
 	const params = useParams();
@@ -30,7 +34,37 @@ export const StudentManagement = () => {
 		search: "",
 	});
 
-	const { data: students, isLoading } = api.student.searchStudents.useQuery(filters);
+	const { data: studentsData, isLoading } = api.student.searchStudents.useQuery(filters);
+
+	const students = studentsData?.map(student => ({
+		id: student.id,
+		name: student.name,
+		email: student.email,
+		status: student.status,
+		studentProfile: {
+			dateOfBirth: student.studentProfile.dateOfBirth,
+			class: student.studentProfile.class ? {
+				id: student.studentProfile.class.id,
+				name: student.studentProfile.class.name,
+				classGroup: {
+					id: student.studentProfile.class.classGroup.id,
+					name: student.studentProfile.class.classGroup.name,
+					program: {
+						id: student.studentProfile.class.classGroup.program.id,
+						name: student.studentProfile.class.classGroup.program.name
+					}
+				}
+			} : null,
+			parent: student.studentProfile.parent ? {
+				user: {
+					name: student.studentProfile.parent.user.name
+				}
+			} : null,
+			attendance: [],
+			activities: []
+		}
+	})) || [];
+
 	const { data: classes } = api.class.searchClasses.useQuery({});
 	const { data: programs } = api.program.getAll.useQuery({
 		page: 1,
@@ -64,14 +98,14 @@ export const StudentManagement = () => {
 								className="max-w-sm"
 							/>
 							<Select
-								value={filters.programId || "all"}
-								onValueChange={(value) => setFilters({ ...filters, programId: value === "all" ? undefined : value })}
+								value={filters.programId || "ALL"}
+								onValueChange={(value) => setFilters({ ...filters, programId: value === "ALL" ? undefined : value })}
 							>
 								<SelectTrigger className="w-[200px]">
 									<SelectValue placeholder="Filter by Program" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Programs</SelectItem>
+									<SelectItem value="ALL">All Programs</SelectItem>
 									{programs?.programs?.map((program: any) => (
 										<SelectItem key={program.id} value={program.id}>
 											{program.name}
@@ -80,14 +114,14 @@ export const StudentManagement = () => {
 								</SelectContent>
 							</Select>
 							<Select
-								value={filters.classId || "all"}
-								onValueChange={(value) => setFilters({ ...filters, classId: value === "all" ? undefined : value })}
+								value={filters.classId || "ALL"}
+								onValueChange={(value) => setFilters({ ...filters, classId: value === "ALL" ? undefined : value })}
 							>
 								<SelectTrigger className="w-[200px]">
 									<SelectValue placeholder="Filter by Class" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Classes</SelectItem>
+									<SelectItem value="ALL">All Classes</SelectItem>
 									{classes?.map((cls) => (
 										<SelectItem key={cls.id} value={cls.id}>
 											{cls.name}
@@ -96,14 +130,14 @@ export const StudentManagement = () => {
 								</SelectContent>
 							</Select>
 							<Select
-								value={filters.status || "all"}
-								onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? undefined : value as Status })}
+								value={filters.status || "ALL"}
+								onValueChange={(value) => setFilters({ ...filters, status: value === "ALL" ? undefined : value as Status })}
 							>
 								<SelectTrigger className="w-[180px]">
 									<SelectValue placeholder="Status" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Status</SelectItem>
+									<SelectItem value="ALL">All Status</SelectItem>
 									{Object.values(Status).map((status) => (
 										<SelectItem key={status} value={status}>
 											{status}
@@ -126,14 +160,14 @@ export const StudentManagement = () => {
 						) : (
 							<>
 								<StudentList 
-									students={students || []} 
+									students={students} 
 									onSelect={(id) => {
 										setSelectedStudentId(id);
 										setShowDetails(true);
 									}}
 								/>
 								<StudentForm 
-									selectedStudent={students?.find(s => s.id === selectedStudentId)}
+									selectedStudent={students.find(s => s.id === selectedStudentId)}
 									classes={classes || []}
 									onSuccess={() => setSelectedStudentId(null)}
 								/>

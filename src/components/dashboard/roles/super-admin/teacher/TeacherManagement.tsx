@@ -26,30 +26,30 @@ interface Class {
 }
 
 interface SearchFilters {
-
   search: string;
   subjectId?: string;
   classId?: string;
-  status?: Status | "all" | undefined;
+  status?: Status | "ALL" | undefined;
 }
+
 
 
 export const TeacherManagement = ({ role }: { role: string }) => {
   const router = useRouter();
   const [filters, setFilters] = useState<SearchFilters>({
-
     search: "",
-    subjectId: "all",
-    classId: "all",
+    subjectId: "ALL",
+    classId: "ALL",
     status: undefined
   });
+
 
   // Process filters before making API calls
   const processedFilters = {
     search: filters.search,
-    subjectId: filters.subjectId === "all" ? undefined : filters.subjectId,
-    classId: filters.classId === "all" ? undefined : filters.classId,
-    status: filters.status === "all" ? undefined : filters.status,
+    subjectId: filters.subjectId === "ALL" ? undefined : filters.subjectId,
+    classId: filters.classId === "ALL" ? undefined : filters.classId,
+    status: filters.status === "ALL" ? undefined : filters.status,
   };
 
   // API queries with proper typing
@@ -92,7 +92,7 @@ export const TeacherManagement = ({ role }: { role: string }) => {
                   <SelectValue placeholder="Filter by Subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
+                    <SelectItem value="ALL">All Subjects</SelectItem>
                   {subjects?.map((subject: Subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
                       {subject.name}
@@ -108,7 +108,7 @@ export const TeacherManagement = ({ role }: { role: string }) => {
                   <SelectValue placeholder="Filter by Class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Classes</SelectItem>
+                    <SelectItem value="ALL">All Classes</SelectItem>
                   {classes?.map((cls: Class) => (
                     <SelectItem key={cls.id} value={cls.id}>
                       {cls.name}
@@ -124,7 +124,7 @@ export const TeacherManagement = ({ role }: { role: string }) => {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="ALL">All Status</SelectItem>
                   {Object.values(Status).map((status) => (
                     <SelectItem key={status} value={status}>
                       {status}

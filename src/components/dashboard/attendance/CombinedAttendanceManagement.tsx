@@ -312,7 +312,7 @@ export const CombinedAttendanceManagement = () => {
               </TabsList>
               <TabsContent value="quick">
                 <div className="space-y-2">
-                    {students?.map((student) => (
+                    {students?.map((student: StudentWithUser) => (
                       <div
                       key={student.id}
                       {...handlers}
@@ -370,14 +370,15 @@ export const CombinedAttendanceManagement = () => {
                               <SelectTrigger>
                               <SelectValue placeholder="Select status" />
                               </SelectTrigger>
-                              <SelectContent>
-                              <SelectItem value="NOT_MARKED">Not Marked</SelectItem>
-                              {Object.values(AttendanceStatus).map(status => (
-                              <SelectItem key={status} value={status}>
-                              {status}
-                              </SelectItem>
-                              ))}
-                              </SelectContent>
+                                <SelectContent>
+                                {Object.values(AttendanceStatus)
+                                  .filter(status => !!status)
+                                  .map(status => (
+                                  <SelectItem key={status} value={status}>
+                                    {status.replace(/_/g, ' ')}
+                                  </SelectItem>
+                                  ))}
+                                </SelectContent>
                             </Select>
                         </td>
                         <td className="p-2">

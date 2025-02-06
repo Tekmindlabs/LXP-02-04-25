@@ -14,23 +14,23 @@ interface SearchFilters {
 	search: string;
 	subjectId?: string;
 	classId?: string;
-	status?: Status | "all" | undefined;
+	status?: Status | "ALL" | undefined;
 }
 
 export default function TeacherPage() {
 	const router = useRouter();
 	const [filters, setFilters] = useState<SearchFilters>({
 		search: "",
-		subjectId: "all",
-		classId: "all",
+		subjectId: "ALL",
+		classId: "ALL",
 		status: undefined
 	});
 
 	const processedFilters = {
 		search: filters.search,
-		subjectId: filters.subjectId === "all" ? undefined : filters.subjectId,
-		classId: filters.classId === "all" ? undefined : filters.classId,
-		status: filters.status === "all" ? undefined : filters.status,
+		subjectId: filters.subjectId === "ALL" ? undefined : filters.subjectId,
+		classId: filters.classId === "ALL" ? undefined : filters.classId,
+		status: filters.status === "ALL" ? undefined : filters.status,
 	};
 
 	const { data: teachers, isLoading } = api.teacher.searchTeachers.useQuery(processedFilters);
@@ -67,7 +67,7 @@ export default function TeacherPage() {
 									<SelectValue placeholder="Filter by Subject" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Subjects</SelectItem>
+									<SelectItem value="ALL">All Subjects</SelectItem>
 									{subjects?.map((subject) => (
 										<SelectItem key={subject.id} value={subject.id}>
 											{subject.name}
@@ -83,7 +83,7 @@ export default function TeacherPage() {
 									<SelectValue placeholder="Filter by Class" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Classes</SelectItem>
+									<SelectItem value="ALL">All Classes</SelectItem>
 									{classes?.map((cls) => (
 										<SelectItem key={cls.id} value={cls.id}>
 											{`${cls.classGroup.name} - ${cls.name}`}
@@ -99,7 +99,7 @@ export default function TeacherPage() {
 									<SelectValue placeholder="Status" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Status</SelectItem>
+									<SelectItem value="ALL">All Status</SelectItem>
 									{Object.values(Status).map((status) => (
 										<SelectItem key={status} value={status}>
 											{status}

@@ -5,6 +5,7 @@ import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ActivityType } from "@/types/class-activity";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,24 +53,8 @@ interface Props {
 	onEdit: (id: string) => void;
 }
 
-// Define activity types as a const enum
-const ActivityTypes = {
-	QUIZ_MULTIPLE_CHOICE: 'QUIZ_MULTIPLE_CHOICE',
-	QUIZ_DRAG_DROP: 'QUIZ_DRAG_DROP',
-	QUIZ_FILL_BLANKS: 'QUIZ_FILL_BLANKS',
-	QUIZ_MEMORY: 'QUIZ_MEMORY',
-	QUIZ_TRUE_FALSE: 'QUIZ_TRUE_FALSE',
-	GAME_WORD_SEARCH: 'GAME_WORD_SEARCH',
-	GAME_CROSSWORD: 'GAME_CROSSWORD',
-	GAME_FLASHCARDS: 'GAME_FLASHCARDS',
-	QUIZ: 'QUIZ',
-	ASSIGNMENT: 'ASSIGNMENT',
-	READING: 'READING',
-	PROJECT: 'PROJECT',
-	EXAM: 'EXAM'
-} as const;
 
-type ActivityType = typeof ActivityTypes[keyof typeof ActivityTypes];
+
 
 interface Filters {
 	search: string;
@@ -125,28 +110,46 @@ export default function ClassActivityList({ onEdit }: Props) {
 					className="max-w-sm"
 				/>
 				<Select
-					value={filters.type || ""}
-					onValueChange={(value) => setFilters({ ...filters, type: value as ActivityType })}
+					value={filters.type || "ALL"}
+					onValueChange={(value) => setFilters({ ...filters, type: value === "ALL" ? undefined : value as ActivityType })}
 				>
 					<SelectTrigger className="w-[200px]">
 						<SelectValue placeholder="Filter by type" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="">All Types</SelectItem>
-						{Object.entries(ActivityTypes).map(([key, value]) => (
-							<SelectItem key={key} value={value}>{key.replace(/_/g, ' ')}</SelectItem>
+						<SelectItem value="ALL">All Types</SelectItem>
+						{[
+							'QUIZ_MULTIPLE_CHOICE',
+							'QUIZ_DRAG_DROP',
+							'QUIZ_FILL_BLANKS',
+							'QUIZ_MEMORY',
+							'QUIZ_TRUE_FALSE',
+							'GAME_WORD_SEARCH',
+							'GAME_CROSSWORD',
+							'GAME_FLASHCARDS',
+							'VIDEO_YOUTUBE',
+							'READING',
+							'CLASS_ASSIGNMENT',
+							'CLASS_PROJECT',
+							'CLASS_PRESENTATION',
+							'CLASS_TEST',
+							'CLASS_EXAM'
+						].map((type) => (
+							<SelectItem key={type} value={type}>
+								{type.replace(/_/g, ' ')}
+							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
 				<Select
-					value={filters.classGroupId || ""}
-					onValueChange={(value) => setFilters({ ...filters, classGroupId: value })}
+					value={filters.classGroupId || "ALL"}
+					onValueChange={(value) => setFilters({ ...filters, classGroupId: value === "ALL" ? undefined : value })}
 				>
 					<SelectTrigger className="w-[200px]">
 						<SelectValue placeholder="Filter by class group" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="">All Class Groups</SelectItem>
+						<SelectItem value="ALL">All Class Groups</SelectItem>
 						{classGroups?.map((group) => (
 							<SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
 						))}

@@ -430,7 +430,7 @@ model ClassActivity {
   id              String    @id @default(cuid())
   title           String
   description     String?
-  type            String
+  type            ActivityType
   status          String    // 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   deadline        DateTime?
   classId         String?
@@ -438,7 +438,7 @@ model ClassActivity {
   subject         Subject   @relation(fields: [subjectId], references: [id])
   subjectId       String
   gradingCriteria String?
-  configuration   Json?
+  configuration   Json      // Stores totalMarks, passingMarks, activityMode, gradingType, etc.
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -453,19 +453,22 @@ model ClassActivity {
 }
 
 model ActivitySubmission {
-  id          String    @id @default(cuid())
-  activityId  String
-  studentId   String
-  content     Json
-  grade       Float?
-  feedback    String?
-  status      String    @default("SUBMITTED") // SUBMITTED, GRADED, PENDING
-  submittedAt DateTime  @default(now())
-  gradedAt    DateTime?
-  gradedBy    String?
+  id             String    @id @default(cuid())
+  activityId     String
+  studentId      String
+  content        Json
+  totalMarks     Int
+  obtainedMarks  Int
+  isPassing      Boolean
+  feedback       String?
+  status         String    @default("SUBMITTED") // SUBMITTED, GRADED, PENDING
+  submittedAt    DateTime  @default(now())
+  gradedAt       DateTime?
+  gradedBy       String?
+  gradingType    String    // AUTOMATIC or MANUAL
   
-  activity    ClassActivity @relation(fields: [activityId], references: [id])
-  student     User         @relation("StudentSubmissions", fields: [studentId], references: [id])
+  activity       ClassActivity @relation(fields: [activityId], references: [id])
+  student        User         @relation("StudentSubmissions", fields: [studentId], references: [id])
 
   @@unique([activityId, studentId])
   @@index([activityId])
@@ -734,6 +737,7 @@ enum EventType {
 }
 
 enum ActivityType {
+  // Online Activities (Auto-graded)
   QUIZ_MULTIPLE_CHOICE
   QUIZ_DRAG_DROP
   QUIZ_FILL_BLANKS
@@ -742,11 +746,14 @@ enum ActivityType {
   GAME_WORD_SEARCH
   GAME_CROSSWORD
   GAME_FLASHCARDS
-  QUIZ
-  ASSIGNMENT
+  VIDEO_YOUTUBE
   READING
-  PROJECT
-  EXAM
+  // In-Class Activities (Manually graded)
+  CLASS_ASSIGNMENT
+  CLASS_PROJECT
+  CLASS_PRESENTATION
+  CLASS_TEST
+  CLASS_EXAM
 }
 
 enum ActivityStatus {

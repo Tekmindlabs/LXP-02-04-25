@@ -33,9 +33,9 @@ export const ProgramForm = ({ selectedProgram, coordinators, onSuccess }: Progra
 	const [formData, setFormData] = useState<ProgramFormData>(() => ({
 		name: selectedProgram?.name || "",
 		description: selectedProgram?.description || "",
-		calendarId: selectedProgram?.calendarId || "none",
-		coordinatorId: selectedProgram?.coordinatorId || "none",
-    status: selectedProgram?.status || Status.ACTIVE,
+		calendarId: selectedProgram?.calendarId || "NO_SELECTION",
+		coordinatorId: selectedProgram?.coordinatorId || "NO_SELECTION",
+		status: selectedProgram?.status || Status.ACTIVE,
 	}));
 
 	const { 
@@ -90,8 +90,8 @@ export const ProgramForm = ({ selectedProgram, coordinators, onSuccess }: Progra
 		setFormData({
 			name: "",
 			description: "",
-			calendarId: "none",
-			coordinatorId: "none",
+			calendarId: "NO_SELECTION",
+			coordinatorId: "NO_SELECTION",
 			status: Status.ACTIVE,
 		});
 	};
@@ -108,25 +108,27 @@ export const ProgramForm = ({ selectedProgram, coordinators, onSuccess }: Progra
 			return;
 		}
 
+		if (formData.calendarId === "NO_SELECTION") {
+			toast({
+				title: "Error",
+				description: "Calendar selection is required",
+				variant: "destructive",
+			});
+			return;
+		}
+
 		const submissionData = {
 			...formData,
-			coordinatorId: formData.coordinatorId === "none" ? undefined : formData.coordinatorId,
-			calendarId: formData.calendarId === "none" ? undefined : formData.calendarId,
+			coordinatorId: formData.coordinatorId === "NO_SELECTION" ? undefined : formData.coordinatorId,
 		};
 
 		if (selectedProgram) {
 			updateMutation.mutate({
 				id: selectedProgram.id,
 				...submissionData,
-        calendarId: submissionData.calendarId === "none" ? undefined : submissionData.calendarId,
-        coordinatorId: submissionData.coordinatorId === "none" ? undefined : submissionData.coordinatorId,
 			});
 		} else {
-			createMutation.mutate({
-        ...submissionData,
-        calendarId: submissionData.calendarId === "none" ? undefined : submissionData.calendarId,
-        coordinatorId: submissionData.coordinatorId === "none" ? undefined : submissionData.coordinatorId,
-      });
+			createMutation.mutate(submissionData);
 		}
 	};
 
@@ -184,7 +186,7 @@ export const ProgramForm = ({ selectedProgram, coordinators, onSuccess }: Progra
 								<SelectValue placeholder="Select Calendar" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="none">Select Calendar</SelectItem>
+								<SelectItem value="NO_SELECTION">Select Calendar</SelectItem>
 								{calendars?.map((calendar) => (
 									<SelectItem key={calendar.id} value={calendar.id}>
 										{calendar.name}
@@ -204,7 +206,7 @@ export const ProgramForm = ({ selectedProgram, coordinators, onSuccess }: Progra
 								<SelectValue placeholder="Select Coordinator" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="none">Select Coordinator</SelectItem>
+								<SelectItem value="NO_SELECTION">Select Coordinator</SelectItem>
 								{coordinators.map((coordinator) => (
 									<SelectItem key={coordinator.id} value={coordinator.id}>
 										{coordinator.user.name}

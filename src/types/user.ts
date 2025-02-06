@@ -1,4 +1,4 @@
-import { Status, ActivityStatus, AttendanceStatus } from "@prisma/client";
+import { Status, AttendanceStatus } from "@prisma/client";
 
 export enum TeacherType {
 	CLASS = "CLASS",
@@ -13,10 +13,13 @@ export interface Student {
 	studentProfile: {
 		dateOfBirth: Date | null;
 		class?: {
+			id: string;
 			name: string;
 			classGroup: {
+				id: string;
 				name: string;
 				program: {
+					id: string;
 					name: string | null;
 				};
 			};
@@ -30,7 +33,7 @@ export interface Student {
 			status: AttendanceStatus;
 		}[];
 		activities: {
-			status: ActivityStatus;
+			status: string;
 			grade: number | null;
 		}[];
 	};

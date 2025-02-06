@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,9 +38,9 @@ const periodSchema = z.object({
 });
 
 const formSchema = z.object({
-	termId: z.string(),
-	classGroupId: z.string().optional(),
-	classId: z.string().optional(),
+	termId: z.string().min(1, "Term is required"),
+	classGroupId: z.string(),
+	classId: z.string(),
 	periods: z.array(periodSchema),
 });
 
@@ -55,7 +55,10 @@ export default function TimetableForm({ onCancel }: TimetableFormProps) {
 	const [selectedPeriod, setSelectedPeriod] = useState<any>(null);
 	const [periods, setPeriods] = useState<z.infer<typeof periodSchema>[]>([]);
 
-	const { data: terms } = api.term.list.useQuery();
+	const [selectedCalendarId, setSelectedCalendarId] = useState<string>("");
+	const { data: terms } = api.term.getByCalendar.useQuery(selectedCalendarId, {
+		enabled: !!selectedCalendarId
+	});
 	const { data: classGroups } = api.classGroup.list.useQuery();
 	const { data: classes } = api.class.list.useQuery();
 
@@ -112,23 +115,33 @@ export default function TimetableForm({ onCancel }: TimetableFormProps) {
 
 	const onSubmit = (data: z.infer<typeof formSchema>) => {
 		const formData = {
-		  ...data,
-		  classGroupId: data.classGroupId === "none" ? undefined : data.classGroupId,
-		  classId: data.classId === "none" ? undefined : data.classId,
-		  periods: periods
-			.filter(period => period.subjectId !== "none" && period.classroomId !== "none" && period.teacherId !== "none")
-			.map(period => ({
-			  startTime: new Date(`1970-01-01T${period.startTime}`),
-			  endTime: new Date(`1970-01-01T${period.endTime}`),
-			  subjectId: period.subjectId,
-			  classroomId: period.classroomId,
-			  teacherId: period.teacherId,
-			  dayOfWeek: period.dayOfWeek,
-			  durationInMinutes: 45,
-			})),
+			termId: data.termId,
+			classGroupId: data.classGroupId === "NO_SELECTION" ? "" : data.classGroupId,
+			classId: data.classId === "NO_SELECTION" ? "" : data.classId,
+			periods: periods
+				.filter(period => period.subjectId !== "NO_SELECTION" && period.classroomId !== "NO_SELECTION" && period.teacherId !== "NO_SELECTION")
+				.map(period => ({
+					startTime: new Date(`1970-01-01T${period.startTime}`),
+					endTime: new Date(`1970-01-01T${period.endTime}`),
+					subjectId: period.subjectId,
+					classroomId: period.classroomId,
+					teacherId: period.teacherId,
+					dayOfWeek: period.dayOfWeek,
+					durationInMinutes: 45,
+				})),
 		};
+
+		if (!formData.classGroupId && !formData.classId) {
+			toast({
+				title: "Error",
+				description: "Either Class Group or Class must be selected",
+				variant: "destructive",
+			});
+			return;
+		}
+
 		createTimetable.mutate(formData);
-	  };
+	};
 
 	return (
 		<>
@@ -173,7 +186,7 @@ export default function TimetableForm({ onCancel }: TimetableFormProps) {
 										<SelectValue placeholder="Select class group" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="none">Select Class Group</SelectItem>
+										<SelectItem value="NO_SELECTION">Select Class Group</SelectItem>
 										{classGroups?.map((group: ClassGroup) => (
 											<SelectItem key={group.id} value={group.id}>
 												{group.name}
@@ -199,7 +212,7 @@ export default function TimetableForm({ onCancel }: TimetableFormProps) {
 										<SelectValue placeholder="Select class" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="none">Select Class</SelectItem>
+										<SelectItem value="NO_SELECTION">Select Class</SelectItem>
 										{classes?.map((cls: Class) => (
 											<SelectItem key={cls.id} value={cls.id}>
 												{cls.name}

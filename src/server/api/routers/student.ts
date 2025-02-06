@@ -184,7 +184,7 @@ export const studentRouter = createTRPCRouter({
 			classId: z.string()
 		}))
 		.query(async ({ ctx, input }) => {
-			return ctx.prisma.StudentProfile.findMany({
+			return ctx.prisma.studentProfile.findMany({
 				where: {
 					classId: input.classId
 				},
@@ -373,10 +373,13 @@ export const studentRouter = createTRPCRouter({
 					studentProfile: {
 						dateOfBirth: student.studentProfile.dateOfBirth,
 						class: student.studentProfile.class ? {
+							id: student.studentProfile.class.id,
 							name: student.studentProfile.class.name,
 							classGroup: {
+								id: student.studentProfile.class.classGroup.id,
 								name: student.studentProfile.class.classGroup.name,
 								program: {
+									id: student.studentProfile.class.classGroup.program.id,
 									name: student.studentProfile.class.classGroup.program.name,
 								},
 							},
@@ -398,7 +401,7 @@ export const studentRouter = createTRPCRouter({
 			classId: z.string()
 		}))
 		.mutation(async ({ ctx, input }) => {
-			return ctx.prisma.StudentProfile.update({
+			return ctx.prisma.studentProfile.update({
 				where: { userId: input.studentId },
 				data: { classId: input.classId },
 				include: {
@@ -455,7 +458,7 @@ export const studentRouter = createTRPCRouter({
 	getStudentPerformance: protectedProcedure
 		.input(z.string())
 		.query(async ({ ctx, input }) => {
-			const student = await ctx.prisma.StudentProfile.findUnique({
+			const student = await ctx.prisma.studentProfile.findUnique({
 				where: { userId: input },
 				include: {
 					class: {
@@ -507,7 +510,7 @@ export const studentRouter = createTRPCRouter({
 			};
 
 			// Subject-wise performance
-			const subjectPerformance = subjects.map(subject => {
+			const subjectPerformance = subjects.map((subject: Subject) => {
 				const subjectActivities = activities.filter(a => 
 					a.activity.subjectId === subject.id && 
 					a.activity.type === 'EXAM'

@@ -72,17 +72,17 @@ export const SubjectManagement = () => {
 							/>
 							<Select
 
-								value={filters.classGroupIds?.[0] || "all"}
+								value={filters.classGroupIds?.[0] || "ALL"}
 								onValueChange={(value) => setFilters({ 
 									...filters, 
-									classGroupIds: value === "all" ? [] : [value] 
+									classGroupIds: value === "ALL" ? [] : [value] 
 								})}
 							>
 								<SelectTrigger className="w-[200px]">
 									<SelectValue placeholder="Filter by Class Group" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Class Groups</SelectItem>
+									<SelectItem value="ALL">All Class Groups</SelectItem>
 									{classGroups?.map((group) => (
 										<SelectItem key={group.id} value={group.id}>
 											{group.name}
@@ -91,14 +91,14 @@ export const SubjectManagement = () => {
 								</SelectContent>
 							</Select>
 							<Select
-								value={filters.teacherId || "all"}
-								onValueChange={(value) => setFilters({ ...filters, teacherId: value === "all" ? undefined : value })}
+								value={filters.teacherId || "ALL"}
+								onValueChange={(value) => setFilters({ ...filters, teacherId: value === "ALL" ? undefined : value })}
 							>
 								<SelectTrigger className="w-[200px]">
 									<SelectValue placeholder="Filter by Teacher" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Teachers</SelectItem>
+									<SelectItem value="ALL">All Teachers</SelectItem>
 									{teachers?.map((teacher) => (
 										<SelectItem key={teacher.id} value={teacher.id}>
 											{teacher.user.name}
@@ -107,14 +107,14 @@ export const SubjectManagement = () => {
 								</SelectContent>
 							</Select>
 							<Select
-								value={filters.status || "all"}
-								onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? undefined : value as Status })}
+								value={filters.status || "ALL"}
+								onValueChange={(value) => setFilters({ ...filters, status: value === "ALL" ? undefined : value as Status })}
 							>
 								<SelectTrigger className="w-[180px]">
 									<SelectValue placeholder="Status" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="all">All Status</SelectItem>
+									<SelectItem value="ALL">All Status</SelectItem>
 									{Object.values(Status).map((status) => (
 										<SelectItem key={status} value={status}>
 											{status}
