@@ -230,7 +230,7 @@ export const classRouter = createTRPCRouter({
 			return classData;
 		}),
 
-	searchClasses: permissionProtectedProcedure([Permissions.CLASS_VIEW])
+	searchClasses: protectedProcedure
 		.input(z.object({
 			classGroupId: z.string().optional(),
 			search: z.string().optional(),
@@ -239,11 +239,36 @@ export const classRouter = createTRPCRouter({
 		}))
 		.query(async ({ ctx, input }) => {
 			const { search, classGroupId, teacherId, status } = input;
-			const isTeacher = ctx.session.user.roles.includes('TEACHER');
+			const userRoles = ctx.session.user.roles;
+			const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+			const isTeacher = userRoles.includes('TEACHER');
+
+			// Allow super-admin access without permission check
+			if (!isSuperAdmin && !userRoles.some(role => ['ADMIN'].includes(role))) {
+				// Check CLASS_VIEW permission for non-super-admin users
+				const hasPermission = await ctx.prisma.rolePermission.findFirst({
+					where: {
+						role: {
+							name: {
+								in: userRoles
+							}
+						},
+						permission: {
+							name: Permissions.CLASS_VIEW
+						}
+					}
+				});
+
+				if (!hasPermission && !isTeacher) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'You do not have permission to view classes'
+					});
+				}
+			}
 
 			// For teachers, only return their assigned classes
-			if (isTeacher) {
-
+			if (isTeacher && !isSuperAdmin && !userRoles.includes('ADMIN')) {
 				return ctx.prisma.class.findMany({
 					where: {
 						teachers: {

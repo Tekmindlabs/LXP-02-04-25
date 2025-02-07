@@ -19,7 +19,6 @@ export default withAuth(
     const isPublicRoute = 
       req.nextUrl.pathname === '/' || 
       req.nextUrl.pathname.startsWith('/_next') ||
-      isTrpcRoute ||
       isApiAuthRoute;
 
     console.log('Middleware - Request:', {
@@ -29,9 +28,19 @@ export default withAuth(
       isTrpcRoute,
     });
 
-    // Always allow TRPC routes
+    // For TRPC routes, attach session info and allow
     if (isTrpcRoute) {
-      return NextResponse.next();
+      const response = NextResponse.next();
+      if (token) {
+      // Attach session info to headers
+      const sessionData = {
+        id: token.id,
+        roles: token.roles,
+        permissions: token.permissions,
+      };
+      response.headers.set('x-trpc-session', JSON.stringify(sessionData));
+      }
+      return response;
     }
 
     // Allow all public routes
@@ -82,16 +91,15 @@ export default withAuth(
       const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
       const isApiAuthRoute = req.nextUrl.pathname.startsWith('/api/auth');
       const isTrpcRoute = req.nextUrl.pathname.startsWith('/api/trpc');
-      const isPublicRoute = 
+        const isPublicRoute = 
         req.nextUrl.pathname === '/' || 
         req.nextUrl.pathname.startsWith('/_next') ||
-        isTrpcRoute ||
         isApiAuthRoute;
 
-      // Always allow TRPC routes
-      if (isTrpcRoute) return true;
+        // Always allow TRPC routes - session handling is done in the route
+        if (isTrpcRoute) return true;
+        if (isPublicRoute || isAuthPage) return true;
 
-      if (isPublicRoute || isAuthPage) return true;
       return !!token;
       }
     }

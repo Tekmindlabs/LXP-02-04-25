@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { loggerLink, unstable_httpBatchStreamLink } from '@trpc/client';
+import { loggerLink, httpBatchLink } from '@trpc/client';
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
 import { api } from "@/utils/api";
@@ -38,17 +38,22 @@ export function Providers({
             process.env.NODE_ENV === 'development' ||
             (opts.direction === 'down' && opts.result instanceof Error),
         }),
-        unstable_httpBatchStreamLink({
+        httpBatchLink({
           url: '/api/trpc',
           headers() {
-            return {
-              cookie: cookieHeader,
-              'x-trpc-source': 'react',
-              'x-trpc-session': session?.user?.id ? 'authenticated' : 'unauthenticated',
-            };
+          return {
+            cookie: cookieHeader,
+            'x-trpc-source': 'react',
+            'x-trpc-session': session?.user?.id ? JSON.stringify({
+            id: session.user.id,
+            roles: session.user.roles,
+            permissions: session.user.permissions,
+            }) : undefined,
+          };
           },
           transformer: superjson,
         }),
+
       ],
     })
   );

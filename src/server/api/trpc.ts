@@ -1,13 +1,38 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { getServerAuthSession } from "@/server/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { Permissions, type Permission } from "@/utils/permissions";
 
 export const createTRPCContext = async (opts: { req: Request }) => {
   try {
-    const session = await getServerAuthSession();
+    const session = await getServerAuthSession(opts.req);
+
+    if (!session) {
+      // Try to get session from headers
+      const sessionHeader = opts.req.headers.get('x-trpc-session');
+      if (sessionHeader) {
+        try {
+          const sessionData = JSON.parse(sessionHeader);
+          return {
+            prisma,
+            session: {
+              user: {
+                id: sessionData.id,
+                roles: sessionData.roles,
+                permissions: sessionData.permissions,
+              },
+              expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            },
+          };
+        } catch (e) {
+          console.error('Error parsing session header:', e);
+        }
+      }
+    }
+
     return {
       prisma,
       session,
@@ -17,6 +42,7 @@ export const createTRPCContext = async (opts: { req: Request }) => {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'Authentication failed',
+      cause: error,
     });
   }
 };
@@ -32,6 +58,7 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
         zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
         code: error.code,
         message: error.message,
+        cause: error.cause instanceof Error ? error.cause.message : undefined,
       },
     };
   },

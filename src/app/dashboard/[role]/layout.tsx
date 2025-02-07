@@ -186,31 +186,31 @@ export default async function RoleLayout({
 	}
 
 	const userRoles = session.user.roles.map((r) => r.toLowerCase());
-	const currentRole = (await Promise.resolve(params.role)).toLowerCase();
+	const currentRole = params.role.toLowerCase();
 
 	if (!currentRole || !userRoles.includes(currentRole)) {
 		redirect(`/dashboard/${userRoles[0]?.toLowerCase() ?? ''}`);
 	}
 
 	const getNavItems = (role: string) => {
-		switch (role) {
-			case 'super-admin':
-				return superAdminNavItems;
-			case 'coordinator':
-				return coordinatorNavItems;
-			case 'teacher':
-				return teacherNavItems;
-			case 'student':
-				return studentNavItems;
-			default:
-				return [];
-		}
+		const baseItems = {
+			'super-admin': superAdminNavItems,
+			'coordinator': coordinatorNavItems,
+			'teacher': teacherNavItems,
+			'student': studentNavItems,
+		}[role] || [];
+
+		return baseItems.map(item => ({
+			...item,
+			href: item.href.replace('[role]', role)
+		}));
 	};
 
 	const navItems = getNavItems(currentRole);
 	const isSuperAdmin = currentRole === 'super-admin';
 
 	return (
+
 
 
 

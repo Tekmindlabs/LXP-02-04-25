@@ -53,12 +53,16 @@ export const authOptions: NextAuthOptions = {
           permissions: (token.permissions as string[]) || [],
         };
       }
-      console.log('Session callback:', {
-        hasSession: !!session,
-        userId: session?.user?.id,
-        userRoles: session?.user?.roles,
-      });
       return session;
+    },
+    authorized: ({ auth, request: { nextUrl } }) => {
+      const isLoggedIn = !!auth?.user;
+      const isApiRoute = nextUrl.pathname.startsWith('/api/');
+      const isTrpcRoute = nextUrl.pathname.startsWith('/api/trpc');
+
+      if (isTrpcRoute) return true;
+      if (isApiRoute) return isLoggedIn;
+      return true;
     },
     redirect: async ({ url, baseUrl }) => {
       if (url.startsWith('/')) {
@@ -155,15 +159,16 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export const getServerAuthSession = async () => {
+export const getServerAuthSession = async (req?: Request) => {
   try {
-    const session = await getServerSession(authOptions);
+    const session = req 
+      ? await getServerSession(req, authOptions)
+      : await getServerSession(authOptions);
     return session;
   } catch (error) {
     console.error("Error getting session:", error);
     return null;
   }
 };
-
 
 

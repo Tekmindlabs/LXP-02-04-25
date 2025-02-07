@@ -71,11 +71,14 @@ export default function SignIn() {
       }
 
       if (result?.ok) {
+        // Wait for session to be established
+        await new Promise(resolve => setTimeout(resolve, 500));
         const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
         router.push(callbackUrl);
         router.refresh();
       }
     } catch (error) {
+      console.error('Sign in error:', error);
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);

@@ -15,7 +15,7 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
 
 export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
 	const pathname = usePathname();
-	const role = pathname.split('/')[2]?.toUpperCase()?.replace(/-/g, '_');
+	const role = pathname.split('/')[2]?.toLowerCase();
 
 	return (
 		<nav
@@ -26,7 +26,7 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
 			{...props}
 		>
 			{items.map((item) => {
-				const href = item.href.replace('[role]', role?.toLowerCase().replace(/_/g, '-'));
+				const href = item.href.replace('[role]', role || '');
 				return (
 					<Link
 						key={item.href}

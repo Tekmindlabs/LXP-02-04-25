@@ -21,25 +21,29 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const session = await getServerAuthSession();
-  const headersList = await headers();
+  const headersList = headers();
   const cookieHeader = headersList.get("cookie") ?? "";
 
-  console.log('Root Layout - Session:', {
-    hasSession: !!session,
-    userId: session?.user?.id,
-    userRoles: session?.user?.roles,
-  });
+  // Log session state for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Root Layout - Session:', {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userRoles: session?.user?.roles,
+      hasCookie: !!cookieHeader,
+    });
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>
-        <body className={inter.className}>
+      <body className={inter.className}>
         <LoadingBar />
         <Providers session={session} cookieHeader={cookieHeader}>
           {children}
           <ConsentBanner />
           <Toaster />
           <div id="dialog-root" />
-          </Providers>
+        </Providers>
       </body>
     </html>
   );
